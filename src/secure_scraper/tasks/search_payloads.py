@@ -25,6 +25,7 @@ class SearchParams:
     page_size: int = 50
     sort_option: str = "RECOMMENDED"
     sort_direction: str = "DESC"
+    program_filter: Optional[List[str]] = None
 
     def to_payload(self) -> dict:
         return {
@@ -40,4 +41,13 @@ class SearchParams:
                 else {"adults": room.adults}
                 for room in self.rooms
             ],
+            **(
+                {
+                    "filters": {
+                        "clientProgramFilter": list(self.program_filter),
+                    }
+                }
+                if self.program_filter
+                else {}
+            ),
         }

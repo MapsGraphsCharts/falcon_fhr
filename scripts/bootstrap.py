@@ -20,7 +20,7 @@ def run(cmd: list[str]) -> None:
 
 
 def install_playwright(with_deps: bool = False) -> None:
-    cmd = [sys.executable, "-m", "playwright", "install"]
+    cmd = [sys.executable, "-m", "patchright", "install"]
     if with_deps:
         cmd.append("--with-deps")
     run(cmd)
@@ -31,7 +31,7 @@ def main() -> None:
     parser.add_argument(
         "--with-deps",
         action="store_true",
-        help="Install system dependencies (Linux CI) via playwright install --with-deps",
+        help="Install system dependencies (Linux CI) via patchright install --with-deps",
     )
     parser.add_argument(
         "--skip-deps",

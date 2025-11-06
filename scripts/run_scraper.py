@@ -16,7 +16,7 @@ from secure_scraper.hotels import (
     HotelRecord,
     build_hotel_and_rate_records,
 )
-from secure_scraper.services.search_client import SearchClient
+from secure_scraper.services.search_client import SearchClient, SessionRefreshError
 from secure_scraper.destinations.catalog import Destination, DestinationCatalog
 from secure_scraper.tasks.download import DownloadTask
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
@@ -125,6 +125,10 @@ async def run() -> None:
         try:
             login_flow = LoginFlow(settings)
             page = await login_flow.run(context)
+            try:
+                await page.close()
+            except Exception:
+                pass
 
             check_in, check_out = _compute_dates(settings)
             destinations = _resolve_destinations(settings)
@@ -150,7 +154,9 @@ async def run() -> None:
                     check_in=check_in,
                     check_out=check_out,
                     rooms=[RoomRequest(adults=settings.search_adults)],
+                    program_filter=list(settings.search_program_filter) or None,
                 )
+                warmup_page = not bool(settings.search_program_filter)
 
                 logging.info(
                     "Starting search for destination %s (%s, %s)",
@@ -159,7 +165,36 @@ async def run() -> None:
                     destination.name,
                 )
 
-                results = await client.fetch_properties(params)
+                last_error: Exception | None = None
+                results: dict[str, object] | None = None
+                for rebuild_attempt in range(2):
+                    try:
+                        results = await client.fetch_properties(params, warmup_page=warmup_page)
+                        last_error = None
+                        break
+                    except SessionRefreshError as exc:
+                        last_error = exc
+                        logging.warning(
+                            "Session refresh failed for %s; rebuilding authentication (attempt %s)",
+                            destination.key,
+                            rebuild_attempt + 1,
+                        )
+                        await ensure_close_context(context)
+                        context = await session.new_context()
+                        login_flow = LoginFlow(settings)
+                        page = await login_flow.run(context)
+                        try:
+                            await page.close()
+                        except Exception:
+                            pass
+                        client = SearchClient(context)
+                        continue
+                if last_error is not None:
+                    raise RuntimeError(
+                        f"Unable to recover session while fetching {destination.key}"
+                    ) from last_error
+
+                assert results is not None
                 hotels_payload = results.get("hotels", [])
 
                 hotel_records, rate_records = build_hotel_and_rate_records(

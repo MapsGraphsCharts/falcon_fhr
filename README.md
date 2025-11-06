@@ -5,7 +5,7 @@ fingerprint-aware targets. The project is structured to keep authentication, wor
 and browser orchestration cleanly separated while making it easy to toggle stealth capabilities.
 
 ## Key Features
-- Async-first Playwright workflows (headed or headless) with context isolation
+- Async-first Patchright (Playwright-compatible) workflows for headed or headless sessions
 - Stealth layer built around [`playwright-stealth`](https://github.com/mattwmaster58/playwright_stealth)
 - Config management through environment variables with type validation
 - Hooks for login/search/download orchestration and JSON persistence
@@ -57,7 +57,7 @@ and browser orchestration cleanly separated while making it easy to toggle steal
    python -m venv .venv && source .venv/bin/activate
    pip install -e .[dev]
    ```
-3. Install Playwright browsers (Chromium/Firefox/WebKit). The helper script also handles Linux deps:
+3. Install Patchright's patched Chromium build (and optional Linux deps) via the helper script:
    ```bash
    python scripts/bootstrap.py
    ```
@@ -99,12 +99,22 @@ When multiple destinations are processed the normalised aggregates are deduplica
   This prints entries that still need metadata before they can be searched. Populate the missing fields manually or extend the script to harvest them automatically from captured traffic.
 - Per-destination results now live in `data/downloads/<destination_key>/`.
 
+### Filtering & automation tips
+- Provide the JSON list `SCRAPER_SEARCH_PROGRAM_FILTER` to restrict results to Fine Hotels + Resorts® or The Hotel Collection, for example:
+  ```bash
+  SCRAPER_SEARCH_PROGRAM_FILTER='["FHR"]' PYTHONPATH=src python scripts/run_scraper.py
+  ```
+  Multiple programs are allowed: `["FHR","THC"]`.
+- Pagination is automatic: when program filters are present the scraper walks every results page until Amex stops returning hotels.
+- Set `SCRAPER_HEADLESS=true` to run the browser in headless mode for unattended jobs.
+- All environment variables can live in `.env` or be supplied inline on the command line.
+
 ## Next Steps
 - Expand `SearchParams` to cover additional filters (price ranges, loyalty tiers, amenities).
 - Improve `LoginFlow` resilience with analytics around failed MFA attempts or credential lockouts.
 - Extend `storage.json_writer.JsonStore` with streaming writes or cloud transports as needed.
 
 ## References
-- Playwright Python docs on browser contexts & storage state (`/microsoft/playwright-python`).
+- Patchright Python docs (`/Kaliiiiiiiiii-Vinyzu/patchright-python`) for drop-in Playwright compatibility.
+- Playwright Python docs on browser contexts & storage state (`/microsoft/playwright-python`)—still applicable to the Patchright API surface.
 - Stealth patterns from `playwright-stealth` (`/mattwmaster58/playwright_stealth`).
-- Consider combining with patched Chromium builds when necessary (e.g. Patchright/Botright).

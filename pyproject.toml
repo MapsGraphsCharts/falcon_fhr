@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [{name = "Tim Stafford"}]
 requires-python = ">=3.10"
 dependencies = [
-    "playwright>=1.45.0",
+    "patchright>=1.55",
     "playwright-stealth>=1.0.6",
     "httpx>=0.26",
     "pydantic-settings>=2.4",

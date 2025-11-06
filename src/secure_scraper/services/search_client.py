@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 from contextlib import suppress
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -28,6 +29,19 @@ SEARCH_REDIRECT_URL = (
 BOOK_ROOT_URL = "https://www.travel.americanexpress.com/en-us/book/"
 
 
+class UnauthorizedSearchError(RuntimeError):
+    """Raised when the properties API denies access due to auth/anti-bot checks."""
+
+    def __init__(self, status: int, body: str) -> None:
+        super().__init__(f"Search request unauthorized ({status})")
+        self.status = status
+        self.body = body
+
+
+class SessionRefreshError(RuntimeError):
+    """Raised when a search cannot recover after session refresh attempts."""
+
+
 class SearchClient:
     def __init__(self, context: BrowserContext) -> None:
         self.context = context
@@ -46,52 +60,152 @@ class SearchClient:
             params.check_in,
             params.check_out,
         )
-        account_token = await self._ensure_account_token()
-        page = await self._perform_search_redirect(params, account_token)
-
-        warmup_data: Optional[Dict[str, Any]] = None
-        if warmup_page:
-            try:
-                logger.info("Waiting for warm-up properties payload via page network response")
-                response = await page.wait_for_event(
-                    "response",
-                    lambda r: r.url.startswith(PROPERTIES_URL)
-                    and r.request.method == "POST",
-                    timeout=10_000,
-                )
-                warmup_data = await response.json()
-                logger.info("Captured properties payload via warm-up page")
-            except (asyncio.TimeoutError, PlaywrightTimeoutError, RuntimeError):
-                logger.warning("Warm-up capture failed; falling back to direct POST")
-            finally:
-                await page.close()
-        else:
-            await page.close()
-
-        if warmup_data is not None:
-            return warmup_data
-
-        payload = params.to_payload()
-        headers = {"Content-Type": "application/json"}
+        base_headers = {"Content-Type": "application/json"}
         if extra_headers:
-            headers.update(extra_headers)
-        logger.info("Fetching properties for %s via direct POST", params.location_id)
-        response = await self.context.request.post(
-            PROPERTIES_URL,
-            data=json.dumps(payload),
-            headers=headers,
-        )
-        if not response.ok:
-            text = await response.text()
-            raise RuntimeError(f"Search request failed ({response.status}): {text[:512]}")
-        return await response.json()
+            base_headers.update(extra_headers)
 
-    async def _ensure_account_token(self) -> str:
-        if self._account_token:
+        account_token = await self._ensure_account_token()
+
+        aggregated_response: Optional[Dict[str, Any]] = None
+        page_number = params.page
+        while True:
+            page_params = replace(params, page=page_number)
+            warmup_current = warmup_page and page_number == params.page
+            page_response, account_token = await self._fetch_properties_page(
+                page_params,
+                account_token=account_token,
+                headers=base_headers,
+                warmup_page=warmup_current,
+            )
+
+            hotels = page_response.get("hotels", []) if page_response else []
+            if aggregated_response is None:
+                aggregated_response = page_response
+            else:
+                aggregated_response.setdefault("hotels", []).extend(hotels)
+                if "context" in page_response:
+                    aggregated_response.setdefault("context", {}).update(page_response["context"])
+
+            pagination = (page_response or {}).get("context", {}).get("pagination", {}) or {}
+            has_next = pagination.get("hasNext")
+            if not has_next or not hotels:
+                break
+            page_number += 1
+
+        if aggregated_response is None:
+            aggregated_response = {
+                "context": {
+                    "pagination": {
+                        "page": params.page,
+                        "pageSize": params.page_size,
+                        "hasNext": False,
+                    }
+                },
+                "hotels": [],
+            }
+
+        return aggregated_response
+
+    async def _ensure_account_token(self, *, force_refresh: bool = False) -> str:
+        if self._account_token and not force_refresh:
             return self._account_token
         token = await self._fetch_account_token()
         self._account_token = token
         return token
+
+    async def _fetch_properties_page(
+        self,
+        params: SearchParams,
+        *,
+        account_token: str,
+        headers: Dict[str, str],
+        warmup_page: bool,
+    ) -> tuple[Dict[str, Any], str]:
+        current_token = account_token
+        payload = params.to_payload()
+
+        for refresh_attempt in range(2):
+            page = await self._perform_search_redirect(params, current_token)
+            warmup_data: Optional[Dict[str, Any]] = None
+            try:
+                if warmup_page:
+                    try:
+                        logger.info("Waiting for warm-up properties payload via page network response")
+                        response = await page.wait_for_event(
+                            "response",
+                            lambda r: r.url.startswith(PROPERTIES_URL)
+                            and r.request.method == "POST",
+                            timeout=10_000,
+                        )
+                        warmup_data = await response.json()
+                        logger.info("Captured properties payload via warm-up page")
+                    except (asyncio.TimeoutError, PlaywrightTimeoutError, RuntimeError):
+                        logger.warning("Warm-up capture failed; falling back to direct POST")
+                else:
+                    try:
+                        await page.wait_for_load_state("networkidle", timeout=5_000)
+                    except Exception:
+                        logger.debug("Network idle wait interrupted during session setup")
+            finally:
+                try:
+                    await page.close()
+                except Exception:
+                    logger.debug("Failed to close search redirect page", exc_info=True)
+
+            if warmup_data is not None:
+                return warmup_data, current_token
+
+            try:
+                page_response = await self._post_properties(payload, headers)
+                return page_response, current_token
+            except UnauthorizedSearchError as exc:
+                logger.warning(
+                    "Hotel properties POST returned %s; refreshing session (attempt %s)",
+                    exc.status,
+                    refresh_attempt + 1,
+                )
+                try:
+                    current_token = await self._ensure_account_token(force_refresh=True)
+                except RuntimeError as token_error:
+                    raise SessionRefreshError(str(token_error)) from token_error
+                await self._refresh_travel_session()
+
+        raise SessionRefreshError("Search request failed after refreshing session")
+
+    async def _post_properties(self, payload: dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
+        location = payload.get("location")
+        page = payload.get("pagination", {}).get("page")
+        if page:
+            logger.info(
+                "Fetching properties for %s via direct POST (page %s)",
+                location,
+                page,
+            )
+        else:
+            logger.info("Fetching properties for %s via direct POST", location)
+        response = await self.context.request.post(
+            PROPERTIES_URL,
+            data=json.dumps(payload),
+            headers=dict(headers),
+        )
+        if response.ok:
+            return await response.json()
+        text = await response.text()
+        if response.status in (401, 403):
+            raise UnauthorizedSearchError(response.status, text)
+        raise RuntimeError(f"Search request failed ({response.status}): {text[:512]}")
+
+    async def _refresh_travel_session(self) -> None:
+        logger.info("Refreshing travel session after failed properties request")
+        page = await self.context.new_page()
+        try:
+            await page.goto(BOOK_ROOT_URL, wait_until="domcontentloaded")
+            try:
+                await page.wait_for_load_state("networkidle", timeout=10_000)
+            except PlaywrightTimeoutError:
+                logger.debug("Travel session refresh networkidle wait timed out")
+        finally:
+            await page.close()
 
     def _build_results_url(params: SearchParams) -> str:
         if not params.rooms:
@@ -175,13 +289,18 @@ class SearchClient:
                 if response.ok:
                     data = await response.json()
                     token = data.get("clientCustomerId")
-                else:
+                elif response.status:
                     text_preview = (await response.text())[:128]
                     logger.warning(
                         "auth/session HTTP %s on attempt %s: %s",
                         response.status,
                         attempt + 1,
                         text_preview,
+                    )
+                else:
+                    logger.warning(
+                        "auth/session request failed without status on attempt %s",
+                        attempt + 1,
                     )
                 if not token:
                     try:
@@ -214,11 +333,14 @@ class SearchClient:
                     response_task.cancel()
                     with suppress(asyncio.CancelledError):
                         await response_task
-                await page.close()
+                try:
+                    await page.close()
+                except Exception as exc:
+                    logger.debug("Failed to close token fetch page: %s", exc)
             await asyncio.sleep(1)
         raise RuntimeError("Unable to retrieve account token from auth session endpoint")
 
-    async def _perform_search_redirect(self, params: SearchParams, account_token: str) -> None:
+    async def _perform_search_redirect(self, params: SearchParams, account_token: str) -> Page:
         payload = {
             "request": {
                 "rooms": [
@@ -252,6 +374,10 @@ class SearchClient:
             },
             "searchType": "hotels",
         }
+        if params.program_filter:
+            payload["request"]["filters"] = {
+                "clientProgramFilter": list(params.program_filter),
+            }
         encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
         url = f"{SEARCH_REDIRECT_URL}?requestBody={quote_plus(encoded)}"
         page = await self.context.new_page()

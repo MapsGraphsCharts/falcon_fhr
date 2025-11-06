@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     search_check_in: Optional[date] = None
     search_nights: int = Field(default=3, description="Length of stay in nights")
     search_adults: int = Field(default=2, description="Adults per room")
+    search_program_filter: Tuple[str, ...] = Field(
+        default=(), description="Optional program filters (e.g. 'FHR', 'THC')"
+    )
     search_destination_keys: Tuple[str, ...] = Field(
         default=(), description="Destination catalog keys to run; comma-separated when provided via env"
     )
@@ -178,6 +181,19 @@ class Settings(BaseSettings):
             keys: Iterable[str] = (key.strip() for key in value.split(","))
             return tuple(key for key in keys if key)
         raise TypeError("search_destination_keys must be provided as a comma-separated string or list")
+
+    @field_validator("search_program_filter", mode="before")
+    def _parse_program_filter(cls, value: object) -> Tuple[str, ...]:
+        if value is None or value == "":
+            return ()
+        if isinstance(value, tuple):
+            return tuple(str(item).strip() for item in value if str(item).strip())
+        if isinstance(value, list):
+            return tuple(str(item).strip() for item in value if str(item).strip())
+        if isinstance(value, str):
+            parts = [part.strip() for part in value.split(",")]
+            return tuple(part for part in parts if part)
+        raise TypeError("search_program_filter must be provided as a comma-separated string or list")
 
     @field_validator("fingerprint_languages", mode="before")
     def _parse_fingerprint_languages(cls, value: object) -> Tuple[str, ...]:
