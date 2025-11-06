@@ -1,0 +1,1373 @@
+{
+  "version": 1,
+  "destinations": [
+    {
+      "key": "us-alabama",
+      "group": "United States",
+      "name": "Alabama",
+      "location_id": "ZMETRO-EXPEDIA-202",
+      "latitude": 32.366966,
+      "longitude": -86.300648
+    },
+    {
+      "key": "us-arizona",
+      "group": "United States",
+      "name": "Arizona",
+      "location_id": "ZMETRO-EXPEDIA-204",
+      "latitude": 33.448437,
+      "longitude": -112.074141
+    },
+    {
+      "key": "us-california",
+      "group": "United States",
+      "name": "California",
+      "location_id": "ZMETRO-EXPEDIA-206",
+      "latitude": 36.778259,
+      "longitude": -119.417931
+    },
+    {
+      "key": "us-colorado",
+      "group": "United States",
+      "name": "Colorado",
+      "location_id": "ZMETRO-EXPEDIA-207",
+      "latitude": 39.550049,
+      "longitude": -105.782066
+    },
+    {
+      "key": "us-connecticut",
+      "group": "United States",
+      "name": "Connecticut",
+      "location_id": "ZMETRO-EXPEDIA-208",
+      "latitude": 41.603222,
+      "longitude": -73.087746
+    },
+    {
+      "key": "us-delaware",
+      "group": "United States",
+      "name": "Delaware",
+      "location_id": "ZMETRO-EXPEDIA-209",
+      "latitude": 39.158168,
+      "longitude": -75.524368
+    },
+    {
+      "key": "us-district-of-columbia",
+      "group": "United States",
+      "name": "District of Columbia",
+      "location_id": "ZMETRO-EXPEDIA-210",
+      "latitude": 38.907238,
+      "longitude": -77.036524
+    },
+    {
+      "key": "us-florida",
+      "group": "United States",
+      "name": "Florida",
+      "location_id": "ZMETRO-EXPEDIA-211",
+      "latitude": 27.780772,
+      "longitude": -81.5625
+    },
+    {
+      "key": "us-georgia",
+      "group": "United States",
+      "name": "Georgia",
+      "location_id": "ZMETRO-EXPEDIA-212",
+      "latitude": 32.165623,
+      "longitude": -82.900078
+    },
+    {
+      "key": "us-hawaii",
+      "group": "United States",
+      "name": "Hawaii",
+      "location_id": "ZMETRO-EXPEDIA-213",
+      "latitude": 19.896767,
+      "longitude": -155.582779
+    },
+    {
+      "key": "us-idaho",
+      "group": "United States",
+      "name": "Idaho",
+      "location_id": "ZMETRO-EXPEDIA-214",
+      "latitude": 43.616616,
+      "longitude": -116.200886
+    },
+    {
+      "key": "us-illinois",
+      "group": "United States",
+      "name": "Illinois",
+      "location_id": "ZMETRO-EXPEDIA-215",
+      "latitude": 40.12399816771237,
+      "longitude": -89.1484976816067
+    },
+    {
+      "key": "us-indiana",
+      "group": "United States",
+      "name": "Indiana",
+      "location_id": "ZMETRO-EXPEDIA-216",
+      "latitude": 40.267193,
+      "longitude": -86.134903
+    },
+    {
+      "key": "us-iowa",
+      "group": "United States",
+      "name": "Iowa",
+      "location_id": "ZMETRO-EXPEDIA-217",
+      "latitude": 41.591032,
+      "longitude": -93.604665
+    },
+    {
+      "key": "us-kentucky",
+      "group": "United States",
+      "name": "Kentucky",
+      "location_id": "ZMETRO-EXPEDIA-219",
+      "latitude": 38.200906,
+      "longitude": -84.873284
+    },
+    {
+      "key": "us-louisiana",
+      "group": "United States",
+      "name": "Louisiana",
+      "location_id": "ZMETRO-EXPEDIA-220",
+      "latitude": 30.450794,
+      "longitude": -91.139115
+    },
+    {
+      "key": "us-maine",
+      "group": "United States",
+      "name": "Maine",
+      "location_id": "ZMETRO-EXPEDIA-221",
+      "latitude": 45.253784,
+      "longitude": -69.445465
+    },
+    {
+      "key": "us-maryland",
+      "group": "United States",
+      "name": "Maryland",
+      "location_id": "ZMETRO-EXPEDIA-222",
+      "latitude": 38.97864,
+      "longitude": -76.492786
+    },
+    {
+      "key": "us-massachusetts",
+      "group": "United States",
+      "name": "Massachusetts",
+      "location_id": "ZMETRO-EXPEDIA-223",
+      "latitude": 42.407211,
+      "longitude": -71.382439
+    },
+    {
+      "key": "us-michigan",
+      "group": "United States",
+      "name": "Michigan",
+      "location_id": "ZMETRO-EXPEDIA-224",
+      "latitude": 44.314846,
+      "longitude": -85.602364
+    },
+    {
+      "key": "us-minnesota",
+      "group": "United States",
+      "name": "Minnesota",
+      "location_id": "ZMETRO-EXPEDIA-225",
+      "latitude": 46.729553,
+      "longitude": -94.685898
+    },
+    {
+      "key": "us-missouri",
+      "group": "United States",
+      "name": "Missouri",
+      "location_id": "ZMETRO-EXPEDIA-227",
+      "latitude": 38.577359,
+      "longitude": -92.172426
+    },
+    {
+      "key": "us-montana",
+      "group": "United States",
+      "name": "Montana",
+      "location_id": "ZMETRO-EXPEDIA-228",
+      "latitude": 46.879681,
+      "longitude": -110.362564
+    },
+    {
+      "key": "us-nebraska",
+      "group": "United States",
+      "name": "Nebraska",
+      "location_id": "ZMETRO-EXPEDIA-229",
+      "latitude": 41.492539,
+      "longitude": -99.90181
+    },
+    {
+      "key": "us-nevada",
+      "group": "United States",
+      "name": "Nevada",
+      "location_id": "ZMETRO-EXPEDIA-230",
+      "latitude": 39.169802,
+      "longitude": -119.757563
+    },
+    {
+      "key": "us-new-hampshire",
+      "group": "United States",
+      "name": "New Hampshire",
+      "location_id": "ZMETRO-EXPEDIA-231",
+      "latitude": 43.207178,
+      "longitude": -71.537476
+    },
+    {
+      "key": "us-new-jersey",
+      "group": "United States",
+      "name": "New Jersey",
+      "location_id": "ZMETRO-EXPEDIA-232",
+      "latitude": 40.058323,
+      "longitude": -74.405662
+    },
+    {
+      "key": "us-new-mexico",
+      "group": "United States",
+      "name": "New Mexico",
+      "location_id": "ZMETRO-EXPEDIA-233",
+      "latitude": 35.68761,
+      "longitude": -105.938456
+    },
+    {
+      "key": "us-new-york",
+      "group": "United States",
+      "name": "New York",
+      "location_id": "ZMETRO-EXPEDIA-178293",
+      "latitude": 40.75668,
+      "longitude": -73.98647
+    },
+    {
+      "key": "us-north-carolina",
+      "group": "United States",
+      "name": "North Carolina",
+      "location_id": "ZMETRO-EXPEDIA-235",
+      "latitude": 35.719758,
+      "longitude": -79.453125
+    },
+    {
+      "key": "us-ohio",
+      "group": "United States",
+      "name": "Ohio",
+      "location_id": "ZMETRO-EXPEDIA-237",
+      "latitude": 39.96226,
+      "longitude": -83.000706
+    },
+    {
+      "key": "us-oklahoma",
+      "group": "United States",
+      "name": "Oklahoma",
+      "location_id": "ZMETRO-EXPEDIA-238",
+      "latitude": 35.472989,
+      "longitude": -97.517054
+    },
+    {
+      "key": "us-oregon",
+      "group": "United States",
+      "name": "Oregon",
+      "location_id": "ZMETRO-EXPEDIA-6051538",
+      "latitude": 44.260083497358224,
+      "longitude": -123.96283122095755
+    },
+    {
+      "key": "us-pennsylvania",
+      "group": "United States",
+      "name": "Pennsylvania",
+      "location_id": "ZMETRO-EXPEDIA-240",
+      "latitude": 40.266311,
+      "longitude": -76.886112
+    },
+    {
+      "key": "us-rhode-island",
+      "group": "United States",
+      "name": "Rhode Island",
+      "location_id": "ZMETRO-EXPEDIA-241",
+      "latitude": 41.823989,
+      "longitude": -71.412834
+    },
+    {
+      "key": "us-south-carolina",
+      "group": "United States",
+      "name": "South Carolina",
+      "location_id": "ZMETRO-EXPEDIA-242",
+      "latitude": 34.000749,
+      "longitude": -81.034331
+    },
+    {
+      "key": "us-south-dakota",
+      "group": "United States",
+      "name": "South Dakota",
+      "location_id": "ZMETRO-EXPEDIA-243",
+      "latitude": 43.969513,
+      "longitude": -99.90181
+    },
+    {
+      "key": "us-tennessee",
+      "group": "United States",
+      "name": "Tennessee",
+      "location_id": "ZMETRO-EXPEDIA-244",
+      "latitude": 36.162277,
+      "longitude": -86.774298
+    },
+    {
+      "key": "us-texas",
+      "group": "United States",
+      "name": "Texas",
+      "location_id": "ZMETRO-EXPEDIA-178293",
+      "latitude": 29.4241,
+      "longitude": -98.4936
+    },
+    {
+      "key": "us-utah",
+      "group": "United States",
+      "name": "Utah",
+      "location_id": "ZMETRO-EXPEDIA-246",
+      "latitude": 39.32098,
+      "longitude": -111.093735
+    },
+    {
+      "key": "us-vermont",
+      "group": "United States",
+      "name": "Vermont",
+      "location_id": "ZMETRO-EXPEDIA-247",
+      "latitude": 44.257739,
+      "longitude": -72.577597
+    },
+    {
+      "key": "us-virginia",
+      "group": "United States",
+      "name": "Virginia",
+      "location_id": "ZMETRO-EXPEDIA-248",
+      "latitude": 37.538509,
+      "longitude": -77.43428
+    },
+    {
+      "key": "us-washington",
+      "group": "United States",
+      "name": "Washington",
+      "location_id": "ZMETRO-EXPEDIA-249",
+      "latitude": 47.751076,
+      "longitude": -120.740135
+    },
+    {
+      "key": "us-wisconsin",
+      "group": "United States",
+      "name": "Wisconsin",
+      "location_id": "ZMETRO-EXPEDIA-251",
+      "latitude": 43.784439,
+      "longitude": -88.787865
+    },
+    {
+      "key": "us-wyoming",
+      "group": "United States",
+      "name": "Wyoming",
+      "location_id": "ZMETRO-EXPEDIA-252",
+      "latitude": 43.07597,
+      "longitude": -107.290283
+    },
+    {
+      "key": "ca-alberta",
+      "group": "Canada",
+      "name": "Alberta",
+      "location_id": "ZMETRO-EXPEDIA-11111",
+      "latitude": 53.546206,
+      "longitude": -113.491241
+    },
+    {
+      "key": "ca-british-columbia",
+      "group": "Canada",
+      "name": "British Columbia",
+      "location_id": "ZMETRO-EXPEDIA-11117",
+      "latitude": 48.428318,
+      "longitude": -123.364953
+    },
+    {
+      "key": "ca-newfoundland-and-labrador",
+      "group": "Canada",
+      "name": "Newfoundland and Labrador",
+      "location_id": "ZMETRO-EXPEDIA-11167",
+      "latitude": 47.561471,
+      "longitude": -52.712616
+    },
+    {
+      "key": "ca-nova-scotia",
+      "group": "Canada",
+      "name": "Nova Scotia",
+      "location_id": "ZMETRO-EXPEDIA-11173",
+      "latitude": 44.648618,
+      "longitude": -63.585949
+    },
+    {
+      "key": "ca-ontario",
+      "group": "Canada",
+      "name": "Ontario",
+      "location_id": "ZMETRO-EXPEDIA-11178",
+      "latitude": 43.653482,
+      "longitude": -79.383935
+    },
+    {
+      "key": "ca-quebec",
+      "group": "Canada",
+      "name": "Qu\u00e9bec",
+      "location_id": "ZMETRO-EXPEDIA-180017",
+      "latitude": 46.8104,
+      "longitude": -71.2139
+    },
+    {
+      "key": "mx-baja-california-sur",
+      "group": "Mexico",
+      "name": "Baja California Sur",
+      "location_id": "ZMETRO-EXPEDIA-11116",
+      "latitude": 26.044445,
+      "longitude": -111.666069
+    },
+    {
+      "key": "mx-guanajuato",
+      "group": "Mexico",
+      "name": "Guanajuato",
+      "location_id": "ZMETRO-EXPEDIA-6052458",
+      "latitude": 20.917019,
+      "longitude": -101.161735
+    },
+    {
+      "key": "mx-guerrero",
+      "group": "Mexico",
+      "name": "Guerrero",
+      "location_id": "ZMETRO-EXPEDIA-11136",
+      "latitude": 17.439192,
+      "longitude": -99.545097
+    },
+    {
+      "key": "mx-jalisco",
+      "group": "Mexico",
+      "name": "Jalisco",
+      "location_id": "ZMETRO-EXPEDIA-11143",
+      "latitude": 20.659538,
+      "longitude": -103.349434
+    },
+    {
+      "key": "mx-mexico-city",
+      "group": "Mexico",
+      "name": "Mexico City",
+      "location_id": "ZMETRO-EXPEDIA-178285",
+      "latitude": 19.432,
+      "longitude": -99.1344
+    },
+    {
+      "key": "mx-nayarit",
+      "group": "Mexico",
+      "name": "Nayarit",
+      "location_id": "ZMETRO-EXPEDIA-11158",
+      "latitude": 21.751385,
+      "longitude": -104.845459
+    },
+    {
+      "key": "mx-nuevo-leon",
+      "group": "Mexico",
+      "name": "Nuevo Le\u00f3n",
+      "location_id": "ZMETRO-EXPEDIA-11174",
+      "latitude": 25.592173,
+      "longitude": -99.996193
+    },
+    {
+      "key": "mx-puebla",
+      "group": "Mexico",
+      "name": "Puebla",
+      "location_id": "ZMETRO-EXPEDIA-11182",
+      "latitude": 19.04129,
+      "longitude": -98.2062
+    },
+    {
+      "key": "mx-quintana-roo",
+      "group": "Mexico",
+      "name": "Quintana Roo",
+      "location_id": "ZMETRO-EXPEDIA-11186",
+      "latitude": 19.18174,
+      "longitude": -88.479141
+    },
+    {
+      "key": "mx-yucatan",
+      "group": "Mexico",
+      "name": "Yucat\u00e1n",
+      "location_id": "ZMETRO-EXPEDIA-11215",
+      "latitude": 20.709879,
+      "longitude": -89.094337
+    },
+    {
+      "key": "ca-belize",
+      "group": "Central America",
+      "name": "Belize",
+      "location_id": "ZMETRO-EXPEDIA-18",
+      "latitude": 17.250199,
+      "longitude": -88.770018
+    },
+    {
+      "key": "ca-costa-rica",
+      "group": "Central America",
+      "name": "Costa Rica",
+      "location_id": "ZMETRO-EXPEDIA-42",
+      "latitude": 9.932543,
+      "longitude": -84.079578
+    },
+    {
+      "key": "ca-guatemala",
+      "group": "Central America",
+      "name": "Guatemala",
+      "location_id": "ZMETRO-EXPEDIA-71",
+      "latitude": 15.783471,
+      "longitude": -90.230759
+    },
+    {
+      "key": "ca-nicaragua",
+      "group": "Central America",
+      "name": "Nicaragua",
+      "location_id": "ZMETRO-EXPEDIA-134",
+      "latitude": 12.865416,
+      "longitude": -85.20723
+    },
+    {
+      "key": "ca-panama",
+      "group": "Central America",
+      "name": "Panama",
+      "location_id": "ZMETRO-EXPEDIA-142",
+      "latitude": 8.537972,
+      "longitude": -80.782123
+    },
+    {
+      "key": "sa-argentina",
+      "group": "South America",
+      "name": "Argentina",
+      "location_id": "ZMETRO-EXPEDIA-8",
+      "latitude": -34.607568,
+      "longitude": -58.437089
+    },
+    {
+      "key": "sa-brazil",
+      "group": "South America",
+      "name": "Brazil",
+      "location_id": "ZMETRO-EXPEDIA-23",
+      "latitude": -14.235004,
+      "longitude": -51.925281
+    },
+    {
+      "key": "sa-chile",
+      "group": "South America",
+      "name": "Chile",
+      "location_id": "ZMETRO-EXPEDIA-36",
+      "latitude": -35.675148,
+      "longitude": -71.542969
+    },
+    {
+      "key": "sa-colombia",
+      "group": "South America",
+      "name": "Colombia",
+      "location_id": "ZMETRO-EXPEDIA-38",
+      "latitude": 4.699854,
+      "longitude": -74.074113
+    },
+    {
+      "key": "sa-ecuador",
+      "group": "South America",
+      "name": "Ecuador",
+      "location_id": "ZMETRO-EXPEDIA-51",
+      "latitude": -1.831239,
+      "longitude": -78.183403
+    },
+    {
+      "key": "sa-peru",
+      "group": "South America",
+      "name": "Peru",
+      "location_id": "ZMETRO-EXPEDIA-144",
+      "latitude": -9.189967,
+      "longitude": -75.015152
+    },
+    {
+      "key": "sa-uruguay",
+      "group": "South America",
+      "name": "Uruguay",
+      "location_id": "ZMETRO-EXPEDIA-191",
+      "latitude": -32.522778,
+      "longitude": -55.765835
+    },
+    {
+      "key": "bc-anguilla",
+      "group": "Bermuda & Caribbean",
+      "name": "Anguilla",
+      "location_id": "ZMETRO-EXPEDIA-6",
+      "latitude": 18.214586,
+      "longitude": -63.051776
+    },
+    {
+      "key": "bc-antigua",
+      "group": "Bermuda & Caribbean",
+      "name": "Antigua",
+      "location_id": "ZMETRO-EXPEDIA-11729",
+      "latitude": 17.074656,
+      "longitude": -61.81752
+    },
+    {
+      "key": "bc-aruba",
+      "group": "Bermuda & Caribbean",
+      "name": "Aruba",
+      "location_id": "ZMETRO-EXPEDIA-9",
+      "latitude": 12.52111,
+      "longitude": -69.968338
+    },
+    {
+      "key": "bc-barbados",
+      "group": "Bermuda & Caribbean",
+      "name": "Barbados",
+      "location_id": "ZMETRO-EXPEDIA-16",
+      "latitude": 13.193887,
+      "longitude": -59.543198
+    },
+    {
+      "key": "bc-bermuda",
+      "group": "Bermuda & Caribbean",
+      "name": "Bermuda",
+      "location_id": "ZMETRO-EXPEDIA-20",
+      "latitude": 32.3078,
+      "longitude": -64.750503
+    },
+    {
+      "key": "bc-british-virgin-islands",
+      "group": "Bermuda & Caribbean",
+      "name": "British Virgin Islands",
+      "location_id": "ZMETRO-EXPEDIA-24",
+      "latitude": 18.420694,
+      "longitude": -64.639969
+    },
+    {
+      "key": "bc-cayman-islands",
+      "group": "Bermuda & Caribbean",
+      "name": "Cayman Islands",
+      "location_id": "ZMETRO-EXPEDIA-33",
+      "latitude": 19.313299,
+      "longitude": -81.2546
+    },
+    {
+      "key": "bc-curacao",
+      "group": "Bermuda & Caribbean",
+      "name": "Curacao",
+      "location_id": "ZMETRO-EXPEDIA-6143269",
+      "latitude": 12.16957,
+      "longitude": -68.990021
+    },
+    {
+      "key": "bc-dominica",
+      "group": "Bermuda & Caribbean",
+      "name": "Dominica",
+      "location_id": "ZMETRO-EXPEDIA-49",
+      "latitude": 15.414999,
+      "longitude": -61.370975
+    },
+    {
+      "key": "bc-dominican-republic",
+      "group": "Bermuda & Caribbean",
+      "name": "Dominican Republic",
+      "location_id": "ZMETRO-EXPEDIA-50",
+      "latitude": 18.480197,
+      "longitude": -69.942111
+    },
+    {
+      "key": "bc-grenada",
+      "group": "Bermuda & Caribbean",
+      "name": "Grenada",
+      "location_id": "ZMETRO-EXPEDIA-68",
+      "latitude": 12.1165,
+      "longitude": -61.679001
+    },
+    {
+      "key": "bc-honduras",
+      "group": "Bermuda & Caribbean",
+      "name": "Honduras",
+      "location_id": "ZMETRO-EXPEDIA-76",
+      "latitude": 15.199999,
+      "longitude": -86.241905
+    },
+    {
+      "key": "bc-jamaica",
+      "group": "Bermuda & Caribbean",
+      "name": "Jamaica",
+      "location_id": "ZMETRO-EXPEDIA-88",
+      "latitude": 18.017883,
+      "longitude": -76.80985
+    },
+    {
+      "key": "bc-puerto-rico",
+      "group": "Bermuda & Caribbean",
+      "name": "Puerto Rico",
+      "location_id": "ZMETRO-EXPEDIA-148",
+      "latitude": 18.465299,
+      "longitude": -66.116666
+    },
+    {
+      "key": "bc-saint-barthelemy",
+      "group": "Bermuda & Caribbean",
+      "name": "Saint Barthelemy",
+      "location_id": "ZCITY-EXPEDIA-178690",
+      "latitude": 47.7476,
+      "longitude": 6.58483
+    },
+    {
+      "key": "bc-saint-kitts-and-nevis",
+      "group": "Bermuda & Caribbean",
+      "name": "Saint Kitts and Nevis",
+      "location_id": "ZMETRO-EXPEDIA-130",
+      "latitude": 17.357822,
+      "longitude": -62.782997
+    },
+    {
+      "key": "bc-saint-lucia",
+      "group": "Bermuda & Caribbean",
+      "name": "Saint Lucia",
+      "location_id": "ZPOI-EXPEDIA-553248621563843877",
+      "latitude": 14.01941,
+      "longitude": -60.998605
+    },
+    {
+      "key": "bc-saint-martin",
+      "group": "Bermuda & Caribbean",
+      "name": "Saint Martin",
+      "location_id": "ZMETRO-EXPEDIA-6069955",
+      "latitude": 18.066476,
+      "longitude": -63.05637
+    },
+    {
+      "key": "bc-saint-vincent-and-the-grenadines",
+      "group": "Bermuda & Caribbean",
+      "name": "Saint Vincent and The Grenadines",
+      "location_id": "ZMETRO-EXPEDIA-11756",
+      "latitude": 13.250974,
+      "longitude": -61.186348
+    },
+    {
+      "key": "bc-the-bahamas",
+      "group": "Bermuda & Caribbean",
+      "name": "The Bahamas",
+      "location_id": "ZPOI-EXPEDIA-501989",
+      "latitude": 25.075385420005325,
+      "longitude": -77.34739417903339
+    },
+    {
+      "key": "bc-turks-and-caicos-islands",
+      "group": "Bermuda & Caribbean",
+      "name": "Turks and Caicos Islands",
+      "location_id": "ZMETRO-EXPEDIA-553248635975177541",
+      "latitude": 21.316726,
+      "longitude": -71.21739
+    },
+    {
+      "key": "bc-us-virgin-islands",
+      "group": "Bermuda & Caribbean",
+      "name": "U.S. Virgin Islands",
+      "location_id": "ZMETRO-EXPEDIA-186",
+      "latitude": 18.335766,
+      "longitude": -64.896332
+    },
+    {
+      "key": "eu-austria",
+      "group": "Europe",
+      "name": "Austria",
+      "location_id": "ZMETRO-EXPEDIA-11",
+      "latitude": 47.516232,
+      "longitude": 14.550072
+    },
+    {
+      "key": "eu-azerbaijan",
+      "group": "Europe",
+      "name": "Azerbaijan",
+      "location_id": "ZMETRO-EXPEDIA-12",
+      "latitude": 40.143105,
+      "longitude": 47.576927
+    },
+    {
+      "key": "eu-belgium",
+      "group": "Europe",
+      "name": "Belgium",
+      "location_id": "ZMETRO-EXPEDIA-17",
+      "latitude": 50.503887,
+      "longitude": 4.469936
+    },
+    {
+      "key": "eu-bulgaria",
+      "group": "Europe",
+      "name": "Bulgaria",
+      "location_id": "ZMETRO-EXPEDIA-26",
+      "latitude": 42.733883,
+      "longitude": 25.48583
+    },
+    {
+      "key": "eu-croatia",
+      "group": "Europe",
+      "name": "Croatia",
+      "location_id": "ZMETRO-EXPEDIA-43",
+      "latitude": 45.099999,
+      "longitude": 15.2
+    },
+    {
+      "key": "eu-cyprus",
+      "group": "Europe",
+      "name": "Cyprus",
+      "location_id": "ZMETRO-EXPEDIA-45",
+      "latitude": 35.126411,
+      "longitude": 33.429859
+    },
+    {
+      "key": "eu-czech-republic",
+      "group": "Europe",
+      "name": "Czech Republic",
+      "location_id": "ZPOI-EXPEDIA-553248635998074222",
+      "latitude": 44.809817,
+      "longitude": 20.46674
+    },
+    {
+      "key": "eu-denmark",
+      "group": "Europe",
+      "name": "Denmark",
+      "location_id": "ZMETRO-EXPEDIA-47",
+      "latitude": 56.26392,
+      "longitude": 9.501785
+    },
+    {
+      "key": "eu-england",
+      "group": "Europe",
+      "name": "England",
+      "location_id": "ZMETRO-EXPEDIA-11218",
+      "latitude": 51.507322,
+      "longitude": -0.127647
+    },
+    {
+      "key": "eu-finland",
+      "group": "Europe",
+      "name": "Finland",
+      "location_id": "ZMETRO-EXPEDIA-58",
+      "latitude": 61.92411,
+      "longitude": 25.748152
+    },
+    {
+      "key": "eu-france",
+      "group": "Europe",
+      "name": "France",
+      "location_id": "ZMETRO-EXPEDIA-59",
+      "latitude": 46.227638,
+      "longitude": 2.213749
+    },
+    {
+      "key": "eu-germany",
+      "group": "Europe",
+      "name": "Germany",
+      "location_id": "ZMETRO-EXPEDIA-64",
+      "latitude": 52.517037,
+      "longitude": 13.38886
+    },
+    {
+      "key": "eu-greece",
+      "group": "Europe",
+      "name": "Greece",
+      "location_id": "ZMETRO-EXPEDIA-67",
+      "latitude": 37.983941,
+      "longitude": 23.728305
+    },
+    {
+      "key": "eu-hungary",
+      "group": "Europe",
+      "name": "Hungary",
+      "location_id": "ZMETRO-EXPEDIA-78",
+      "latitude": 47.162495,
+      "longitude": 19.503304
+    },
+    {
+      "key": "eu-iceland",
+      "group": "Europe",
+      "name": "Iceland",
+      "location_id": "ZMETRO-EXPEDIA-79",
+      "latitude": 64.963051,
+      "longitude": -19.020836
+    },
+    {
+      "key": "eu-ireland",
+      "group": "Europe",
+      "name": "Ireland",
+      "location_id": "ZMETRO-EXPEDIA-84",
+      "latitude": 53.412911,
+      "longitude": -8.24389
+    },
+    {
+      "key": "eu-italy",
+      "group": "Europe",
+      "name": "Italy",
+      "location_id": "ZMETRO-EXPEDIA-179899",
+      "latitude": 41.903755,
+      "longitude": 12.479556
+    },
+    {
+      "key": "eu-liechtenstein",
+      "group": "Europe",
+      "name": "Liechtenstein",
+      "location_id": "ZMETRO-EXPEDIA-11405",
+      "latitude": 47.166,
+      "longitude": 9.555373
+    },
+    {
+      "key": "eu-malta",
+      "group": "Europe",
+      "name": "Malta",
+      "location_id": "ZMETRO-EXPEDIA-111",
+      "latitude": 35.937496,
+      "longitude": 14.375416
+    },
+    {
+      "key": "eu-monaco",
+      "group": "Europe",
+      "name": "Monaco",
+      "location_id": "ZMETRO-EXPEDIA-120",
+      "latitude": 43.731142,
+      "longitude": 7.419758
+    },
+    {
+      "key": "eu-montenegro",
+      "group": "Europe",
+      "name": "Montenegro",
+      "location_id": "ZMETRO-EXPEDIA-6051403",
+      "latitude": 42.708679,
+      "longitude": 19.37439
+    },
+    {
+      "key": "eu-netherlands",
+      "group": "Europe",
+      "name": "Netherlands",
+      "location_id": "ZMETRO-EXPEDIA-129",
+      "latitude": 52.132633,
+      "longitude": 5.291266
+    },
+    {
+      "key": "eu-norway",
+      "group": "Europe",
+      "name": "Norway",
+      "location_id": "ZMETRO-EXPEDIA-138",
+      "latitude": 59.91333,
+      "longitude": 10.73897
+    },
+    {
+      "key": "eu-poland",
+      "group": "Europe",
+      "name": "Poland",
+      "location_id": "ZMETRO-EXPEDIA-146",
+      "latitude": 51.919437,
+      "longitude": 19.145136
+    },
+    {
+      "key": "eu-portugal",
+      "group": "Europe",
+      "name": "Portugal",
+      "location_id": "ZMETRO-EXPEDIA-147",
+      "latitude": 39.399872,
+      "longitude": -8.224454
+    },
+    {
+      "key": "eu-romania",
+      "group": "Europe",
+      "name": "Romania",
+      "location_id": "ZMETRO-EXPEDIA-151",
+      "latitude": 45.943161,
+      "longitude": 24.966761
+    },
+    {
+      "key": "eu-scotland",
+      "group": "Europe",
+      "name": "Scotland",
+      "location_id": "ZMETRO-EXPEDIA-11219",
+      "latitude": 55.953346,
+      "longitude": -3.188375
+    },
+    {
+      "key": "eu-serbia",
+      "group": "Europe",
+      "name": "Serbia",
+      "location_id": "ZMETRO-EXPEDIA-197",
+      "latitude": 44.016522,
+      "longitude": 21.005859
+    },
+    {
+      "key": "eu-slovenia",
+      "group": "Europe",
+      "name": "Slovenia",
+      "location_id": "ZMETRO-EXPEDIA-11413",
+      "latitude": 46.151241,
+      "longitude": 14.995463
+    },
+    {
+      "key": "eu-spain",
+      "group": "Europe",
+      "name": "Spain",
+      "location_id": "ZMETRO-EXPEDIA-166",
+      "latitude": 40.416705,
+      "longitude": -3.703582
+    },
+    {
+      "key": "eu-sweden",
+      "group": "Europe",
+      "name": "Sweden",
+      "location_id": "ZMETRO-EXPEDIA-173",
+      "latitude": 60.128162,
+      "longitude": 18.643501
+    },
+    {
+      "key": "eu-switzerland",
+      "group": "Europe",
+      "name": "Switzerland",
+      "location_id": "ZMETRO-EXPEDIA-174",
+      "latitude": 47.381962,
+      "longitude": 8.539648
+    },
+    {
+      "key": "eu-turkey",
+      "group": "Europe",
+      "name": "Turkey",
+      "location_id": "ZCITY-EXPEDIA-3000404464",
+      "latitude": 42.680991,
+      "longitude": -80.332169
+    },
+    {
+      "key": "eu-wales",
+      "group": "Europe",
+      "name": "Wales",
+      "location_id": "ZMETRO-EXPEDIA-11220",
+      "latitude": 51.481655,
+      "longitude": -3.179193
+    },
+    {
+      "key": "ap-australia",
+      "group": "Asia Pacific",
+      "name": "Australia",
+      "location_id": "ZMETRO-EXPEDIA-10",
+      "latitude": -35.297591,
+      "longitude": 149.101268
+    },
+    {
+      "key": "ap-bhutan",
+      "group": "Asia Pacific",
+      "name": "Bhutan",
+      "location_id": "ZMETRO-EXPEDIA-11400",
+      "latitude": 27.514162,
+      "longitude": 90.433601
+    },
+    {
+      "key": "ap-cambodia",
+      "group": "Asia Pacific",
+      "name": "Cambodia",
+      "location_id": "ZMETRO-EXPEDIA-29",
+      "latitude": 12.565679,
+      "longitude": 104.990967
+    },
+    {
+      "key": "ap-china",
+      "group": "Asia Pacific",
+      "name": "China",
+      "location_id": "ZMETRO-EXPEDIA-37",
+      "latitude": 39.996657,
+      "longitude": 116.406784
+    },
+    {
+      "key": "ap-fiji",
+      "group": "Asia Pacific",
+      "name": "Fiji",
+      "location_id": "ZMETRO-EXPEDIA-57",
+      "latitude": -18.128369,
+      "longitude": 178.447827
+    },
+    {
+      "key": "ap-french-polynesia",
+      "group": "Asia Pacific",
+      "name": "French Polynesia",
+      "location_id": "ZMETRO-EXPEDIA-61",
+      "latitude": -17.537383,
+      "longitude": -149.565996
+    },
+    {
+      "key": "ap-guam",
+      "group": "Asia Pacific",
+      "name": "Guam",
+      "location_id": "ZMETRO-EXPEDIA-70",
+      "latitude": 13.444305,
+      "longitude": 144.793732
+    },
+    {
+      "key": "ap-india",
+      "group": "Asia Pacific",
+      "name": "India",
+      "location_id": "ZMETRO-EXPEDIA-80",
+      "latitude": 28.613895,
+      "longitude": 77.209006
+    },
+    {
+      "key": "ap-indonesia",
+      "group": "Asia Pacific",
+      "name": "Indonesia",
+      "location_id": "ZMETRO-EXPEDIA-81",
+      "latitude": -6.175394,
+      "longitude": 106.827183
+    },
+    {
+      "key": "ap-japan",
+      "group": "Asia Pacific",
+      "name": "Japan",
+      "location_id": "ZMETRO-EXPEDIA-89",
+      "latitude": 36.204823,
+      "longitude": 138.25293
+    },
+    {
+      "key": "ap-kazakhstan",
+      "group": "Asia Pacific",
+      "name": "Kazakhstan",
+      "location_id": "ZMETRO-EXPEDIA-91",
+      "latitude": 48.019573,
+      "longitude": 66.923683
+    },
+    {
+      "key": "ap-laos",
+      "group": "Asia Pacific",
+      "name": "Laos",
+      "location_id": "ZMETRO-EXPEDIA-96",
+      "latitude": 19.85627,
+      "longitude": 102.495499
+    },
+    {
+      "key": "ap-malaysia",
+      "group": "Asia Pacific",
+      "name": "Malaysia",
+      "location_id": "ZMETRO-EXPEDIA-108",
+      "latitude": 3.151696,
+      "longitude": 101.694237
+    },
+    {
+      "key": "ap-maldives",
+      "group": "Asia Pacific",
+      "name": "Maldives",
+      "location_id": "ZMETRO-EXPEDIA-109",
+      "latitude": 4.177988,
+      "longitude": 73.510739
+    },
+    {
+      "key": "ap-mongolia",
+      "group": "Asia Pacific",
+      "name": "Mongolia",
+      "location_id": "ZMETRO-EXPEDIA-11408",
+      "latitude": 46.862495,
+      "longitude": 103.846657
+    },
+    {
+      "key": "ap-new-zealand",
+      "group": "Asia Pacific",
+      "name": "New Zealand",
+      "location_id": "ZMETRO-EXPEDIA-133",
+      "latitude": -41.288795,
+      "longitude": 174.777211
+    },
+    {
+      "key": "ap-philippines",
+      "group": "Asia Pacific",
+      "name": "Philippines",
+      "location_id": "ZMETRO-EXPEDIA-145",
+      "latitude": 14.594891,
+      "longitude": 120.978262
+    },
+    {
+      "key": "ap-singapore",
+      "group": "Asia Pacific",
+      "name": "Singapore",
+      "location_id": "ZMETRO-EXPEDIA-161",
+      "latitude": 1.289918,
+      "longitude": 103.851907
+    },
+    {
+      "key": "ap-south-korea",
+      "group": "Asia Pacific",
+      "name": "South Korea",
+      "location_id": "ZMETRO-EXPEDIA-94",
+      "latitude": 35.907757,
+      "longitude": 127.766922
+    },
+    {
+      "key": "ap-sri-lanka",
+      "group": "Asia Pacific",
+      "name": "Sri Lanka",
+      "location_id": "ZMETRO-EXPEDIA-167",
+      "latitude": 7.873045,
+      "longitude": 80.771794
+    },
+    {
+      "key": "ap-taiwan",
+      "group": "Asia Pacific",
+      "name": "Taiwan",
+      "location_id": "ZMETRO-EXPEDIA-176",
+      "latitude": 25.03752,
+      "longitude": 121.56368
+    },
+    {
+      "key": "ap-thailand",
+      "group": "Asia Pacific",
+      "name": "Thailand",
+      "location_id": "ZMETRO-EXPEDIA-178",
+      "latitude": 15.870032,
+      "longitude": 100.992539
+    },
+    {
+      "key": "ap-vietnam",
+      "group": "Asia Pacific",
+      "name": "Vietnam",
+      "location_id": "ZMETRO-EXPEDIA-194",
+      "latitude": 14.058324,
+      "longitude": 108.277199
+    },
+    {
+      "key": "me-bahrain",
+      "group": "Middle East & Africa",
+      "name": "Bahrain",
+      "location_id": "ZMETRO-EXPEDIA-14",
+      "latitude": 26.0667,
+      "longitude": 50.557701
+    },
+    {
+      "key": "me-egypt",
+      "group": "Middle East & Africa",
+      "name": "Egypt",
+      "location_id": "ZMETRO-EXPEDIA-52",
+      "latitude": 26.820553,
+      "longitude": 30.802498
+    },
+    {
+      "key": "me-israel",
+      "group": "Middle East & Africa",
+      "name": "Israel",
+      "location_id": "ZMETRO-EXPEDIA-85",
+      "latitude": 31.046051,
+      "longitude": 34.851612
+    },
+    {
+      "key": "me-jordan",
+      "group": "Middle East & Africa",
+      "name": "Jordan",
+      "location_id": "ZMETRO-EXPEDIA-90",
+      "latitude": 30.585163,
+      "longitude": 36.238415
+    },
+    {
+      "key": "me-kenya",
+      "group": "Middle East & Africa",
+      "name": "Kenya",
+      "location_id": "ZMETRO-EXPEDIA-92",
+      "latitude": -0.023559,
+      "longitude": 37.906193
+    },
+    {
+      "key": "me-kuwait",
+      "group": "Middle East & Africa",
+      "name": "Kuwait",
+      "location_id": "ZMETRO-EXPEDIA-95",
+      "latitude": 29.311661,
+      "longitude": 47.481766
+    },
+    {
+      "key": "me-mauritius",
+      "group": "Middle East & Africa",
+      "name": "Mauritius",
+      "location_id": "ZMETRO-EXPEDIA-115",
+      "latitude": -20.348404,
+      "longitude": 57.552151
+    },
+    {
+      "key": "me-morocco",
+      "group": "Middle East & Africa",
+      "name": "Morocco",
+      "location_id": "ZMETRO-EXPEDIA-122",
+      "latitude": 31.791702,
+      "longitude": -7.09262
+    },
+    {
+      "key": "me-mozambique",
+      "group": "Middle East & Africa",
+      "name": "Mozambique",
+      "location_id": "ZMETRO-EXPEDIA-123",
+      "latitude": -18.665695,
+      "longitude": 35.529564
+    },
+    {
+      "key": "me-oman",
+      "group": "Middle East & Africa",
+      "name": "Oman",
+      "location_id": "ZMETRO-EXPEDIA-139",
+      "latitude": 21.512583,
+      "longitude": 55.923256
+    },
+    {
+      "key": "me-qatar",
+      "group": "Middle East & Africa",
+      "name": "Qatar",
+      "location_id": "ZMETRO-EXPEDIA-149",
+      "latitude": 25.354826,
+      "longitude": 51.183884
+    },
+    {
+      "key": "me-rwanda",
+      "group": "Middle East & Africa",
+      "name": "Rwanda",
+      "location_id": "ZMETRO-EXPEDIA-154",
+      "latitude": -1.945904,
+      "longitude": 30.05885
+    },
+    {
+      "key": "me-saudi-arabia",
+      "group": "Middle East & Africa",
+      "name": "Saudi Arabia",
+      "location_id": "ZMETRO-EXPEDIA-157",
+      "latitude": 23.885943,
+      "longitude": 45.079163
+    },
+    {
+      "key": "me-seychelles",
+      "group": "Middle East & Africa",
+      "name": "Seychelles",
+      "location_id": "ZMETRO-EXPEDIA-159",
+      "latitude": -4.679574,
+      "longitude": 55.491978
+    },
+    {
+      "key": "me-south-africa",
+      "group": "Middle East & Africa",
+      "name": "South Africa",
+      "location_id": "ZMETRO-EXPEDIA-165",
+      "latitude": -30.559483,
+      "longitude": 22.937506
+    },
+    {
+      "key": "me-tanzania",
+      "group": "Middle East & Africa",
+      "name": "Tanzania",
+      "location_id": "ZMETRO-EXPEDIA-177",
+      "latitude": -6.369028,
+      "longitude": 34.888821
+    },
+    {
+      "key": "me-tunisia",
+      "group": "Middle East & Africa",
+      "name": "Tunisia",
+      "location_id": "ZMETRO-EXPEDIA-182",
+      "latitude": 33.886917,
+      "longitude": 9.537499
+    },
+    {
+      "key": "me-united-arab-emirates",
+      "group": "Middle East & Africa",
+      "name": "United Arab Emirates",
+      "location_id": "ZMETRO-EXPEDIA-189",
+      "latitude": 23.424076,
+      "longitude": 53.847817
+    },
+    {
+      "key": "me-zambia",
+      "group": "Middle East & Africa",
+      "name": "Zambia",
+      "location_id": "ZMETRO-EXPEDIA-199",
+      "latitude": -13.133897,
+      "longitude": 27.849333
+    }
+  ]
+}

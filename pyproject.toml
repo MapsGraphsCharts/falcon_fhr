@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secure-scraper"
+version = "0.1.0"
+description = "Playwright-based scraping toolkit with stealth support for secure targets."
+readme = "README.md"
+authors = [{name = "Tim Stafford"}]
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.45.0",
+    "playwright-stealth>=1.0.6",
+    "httpx>=0.26",
+    "pydantic-settings>=2.4",
+    "pyotp>=2.9",
+    "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
