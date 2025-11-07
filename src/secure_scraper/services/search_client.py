@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 import base64
 import json
 import logging
-from contextlib import suppress
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -123,13 +123,15 @@ class SearchClient:
     ) -> tuple[Dict[str, Any], str]:
         current_token = account_token
         payload = params.to_payload()
+        use_warmup = warmup_page
 
-        for refresh_attempt in range(2):
-            page = await self._perform_search_redirect(params, current_token)
+        for refresh_attempt in range(3):
+            page: Optional[Page] = None
             warmup_data: Optional[Dict[str, Any]] = None
             try:
-                if warmup_page:
+                if use_warmup:
                     try:
+                        page = await self._perform_search_redirect(params, current_token)
                         logger.info("Waiting for warm-up properties payload via page network response")
                         response = await page.wait_for_event(
                             "response",
@@ -141,14 +143,10 @@ class SearchClient:
                         logger.info("Captured properties payload via warm-up page")
                     except (asyncio.TimeoutError, PlaywrightTimeoutError, RuntimeError):
                         logger.warning("Warm-up capture failed; falling back to direct POST")
-                else:
-                    try:
-                        await page.wait_for_load_state("networkidle", timeout=5_000)
-                    except Exception:
-                        logger.debug("Network idle wait interrupted during session setup")
             finally:
                 try:
-                    await page.close()
+                    if page:
+                        await page.close()
                 except Exception:
                     logger.debug("Failed to close search redirect page", exc_info=True)
 
@@ -169,6 +167,7 @@ class SearchClient:
                 except RuntimeError as token_error:
                     raise SessionRefreshError(str(token_error)) from token_error
                 await self._refresh_travel_session()
+                use_warmup = True
 
         raise SessionRefreshError("Search request failed after refreshing session")
 
@@ -259,7 +258,6 @@ class SearchClient:
         for attempt in range(5):
             logger.info("Requesting account token (attempt %s)", attempt + 1)
             page = await self.context.new_page()
-            token = None
             response_task = asyncio.create_task(
                 page.wait_for_event(
                     "response",
@@ -273,35 +271,7 @@ class SearchClient:
                     await page.wait_for_load_state("networkidle", timeout=10_000)
                 except PlaywrightTimeoutError:
                     logger.debug("Network idle wait timed out while preparing auth session fetch")
-                cookies = await self.context.cookies([BOOK_ROOT_URL, AUTH_SESSION_URL])
-                cookie_pairs = [
-                    f"{cookie.get('name')}={cookie.get('value')}"
-                    for cookie in cookies
-                    if cookie.get("name") and cookie.get("value")
-                ]
-                headers = {
-                    "Accept": "application/json, text/plain, */*",
-                    "Referer": BOOK_ROOT_URL,
-                }
-                if cookie_pairs:
-                    headers["Cookie"] = "; ".join(cookie_pairs)
-                response = await self.context.request.get(AUTH_SESSION_URL, headers=headers)
-                if response.ok:
-                    data = await response.json()
-                    token = data.get("clientCustomerId")
-                elif response.status:
-                    text_preview = (await response.text())[:128]
-                    logger.warning(
-                        "auth/session HTTP %s on attempt %s: %s",
-                        response.status,
-                        attempt + 1,
-                        text_preview,
-                    )
-                else:
-                    logger.warning(
-                        "auth/session request failed without status on attempt %s",
-                        attempt + 1,
-                    )
+                token, status, preview = await self._fetch_account_token_via_request()
                 if not token:
                     try:
                         awaited_response = await response_task
@@ -328,6 +298,19 @@ class SearchClient:
                 if token:
                     logger.info("Obtained account token on attempt %s", attempt + 1)
                     return token
+                if status:
+                    logger.warning(
+                        "auth/session HTTP %s on attempt %s (preview: %s)",
+                        status,
+                        attempt + 1,
+                        preview,
+                    )
+                else:
+                    logger.warning(
+                        "auth/session fetch failed on attempt %s: %s",
+                        attempt + 1,
+                        preview,
+                    )
             finally:
                 if not response_task.done():
                     response_task.cancel()
@@ -340,7 +323,35 @@ class SearchClient:
             await asyncio.sleep(1)
         raise RuntimeError("Unable to retrieve account token from auth session endpoint")
 
+    async def _fetch_account_token_via_request(self) -> tuple[Optional[str], Optional[int], str]:
+        cookies = await self.context.cookies([BOOK_ROOT_URL, AUTH_SESSION_URL])
+        cookie_pairs = [
+            f"{cookie.get('name')}={cookie.get('value')}"
+            for cookie in cookies
+            if cookie.get("name") and cookie.get("value")
+        ]
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "Referer": BOOK_ROOT_URL,
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache",
+        }
+        if cookie_pairs:
+            headers["Cookie"] = "; ".join(cookie_pairs)
+        response = await self.context.request.get(AUTH_SESSION_URL, headers=headers)
+        text = await response.text()
+        token = None
+        if response.ok:
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError:
+                logger.warning("auth/session response not JSON despite HTTP 200: %s", text[:128])
+            else:
+                token = data.get("clientCustomerId")
+        return token, response.status, text[:128]
+
     async def _perform_search_redirect(self, params: SearchParams, account_token: str) -> Page:
+        enable_program_filter = bool(params.program_filter)
         payload = {
             "request": {
                 "rooms": [
@@ -367,14 +378,14 @@ class SearchClient:
                     "includeCenturion": True,
                     "isForcedLoginFeatureFlagEnabled": True,
                     "isCardModalEnabled": False,
-                    "isFhrThcHorizonsEnabled": False,
+                    "isFhrThcHorizonsEnabled": enable_program_filter,
                 },
                 "inav": "us-travel-hp-hotels-search",
                 "accountToken": account_token,
             },
             "searchType": "hotels",
         }
-        if params.program_filter:
+        if enable_program_filter:
             payload["request"]["filters"] = {
                 "clientProgramFilter": list(params.program_filter),
             }
@@ -382,6 +393,7 @@ class SearchClient:
         url = f"{SEARCH_REDIRECT_URL}?requestBody={quote_plus(encoded)}"
         page = await self.context.new_page()
         logger.debug("Navigating to search redirect %s", url)
+        await page.route("**/*", self._inject_fetch_overrides)
         await page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:
             await page.wait_for_load_state("networkidle", timeout=10_000)
@@ -389,3 +401,6 @@ class SearchClient:
             logger.debug("Networkidle not reached after search redirect; continuing")
         logger.info("Search redirect landed at %s", page.url)
         return page
+
+    async def _inject_fetch_overrides(self, route, request) -> None:
+        await route.continue_()

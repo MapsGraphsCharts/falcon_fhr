@@ -41,12 +41,44 @@ class Settings(BaseSettings):
     username: Optional[str] = Field(default=None, description="Primary account username")
     password: Optional[str] = Field(default=None, description="Primary account password")
     mfa_secret: Optional[str] = None
+    fastmail_api_token: Optional[str] = Field(
+        default=None,
+        description="Fastmail JMAP API token used for OTP email retrieval",
+    )
+    fastmail_mailbox: Optional[str] = Field(
+        default="inbox",
+        description="Fastmail mailbox role or name to poll for OTP emails",
+    )
+    fastmail_sender_filter: Optional[str] = Field(
+        default="AmericanExpress@welcome.americanexpress.com",
+        description="Restrict OTP email polling to this sender address when provided",
+    )
+    fastmail_subject_pattern: Optional[str] = Field(
+        default=r"Your American Express one-time verification code",
+        description="Regex applied to the email subject when searching for OTP codes",
+    )
+    fastmail_code_pattern: str = Field(
+        default=r"\b(\d{6})\b",
+        description="Regex capture group used to extract OTP codes from email subject/body",
+    )
+    fastmail_poll_interval_s: float = Field(
+        default=5.0, description="Seconds between Fastmail mailbox polling attempts for OTP emails"
+    )
+    fastmail_timeout_s: float = Field(
+        default=120.0, description="Maximum seconds to wait for an OTP email before failing"
+    )
+    fastmail_recent_window_s: float = Field(
+        default=900.0, description="Accept OTP emails received within this many seconds"
+    )
+    fastmail_message_limit: int = Field(
+        default=10, description="Number of recent Fastmail messages to inspect per poll"
+    )
 
     base_url: str = Field(
         default="https://www.amextravel.com",
         description="Target base URL for login/search flows",
     )
-    headless: bool = False
+    headless: bool = True
     slow_mo_ms: int = Field(default=0, description="Slow-mo delay in milliseconds")
     viewport_width: int = 1280
     viewport_height: int = 720
@@ -66,6 +98,27 @@ class Settings(BaseSettings):
     stealth_platform: Optional[str] = None
     stealth_user_agent: Optional[str] = None
 
+    persistent_context_enabled: bool = Field(
+        default=True,
+        description="Use launch_persistent_context with a Chrome channel and user data dir",
+    )
+    persistent_user_data_dir: Path = Field(
+        default=Path("data/chrome-profile"),
+        description="Directory that stores the persistent Chrome profile when enabled",
+    )
+    chromium_channel: Optional[str] = Field(
+        default=None,
+        description="Browser channel passed to Patchright (e.g. 'chrome'); use None for bundled Chromium",
+    )
+    chromium_no_viewport: bool = Field(
+        default=True,
+        description="When using persistent context, let Chrome manage its native viewport",
+    )
+    chromium_args: Tuple[str, ...] = Field(
+        default=("--disable-blink-features=AutomationControlled",),
+        description="Extra Chromium args passed during launch",
+    )
+
     storage_state_path: Optional[Path] = None
 
     search_location_id: str = Field(
@@ -84,6 +137,14 @@ class Settings(BaseSettings):
     )
     search_destination_keys: Tuple[str, ...] = Field(
         default=(), description="Destination catalog keys to run; comma-separated when provided via env"
+    )
+    search_warmup_enabled: bool = Field(
+        default=False,
+        description="If true, wait for warm-up properties payload via search redirect page",
+    )
+    login_monitor_markers: bool = Field(
+        default=False,
+        description="If true, wait for credentials-signin/auth session network markers during login",
     )
 
     fingerprint_enabled: bool = Field(
@@ -151,6 +212,12 @@ class Settings(BaseSettings):
 
     @field_validator("destination_catalog_path", mode="before")
     def _expand_catalog_path(cls, value: str | Path) -> Path:
+        if isinstance(value, Path):
+            return value
+        return Path(value).expanduser()
+
+    @field_validator("persistent_user_data_dir", mode="before")
+    def _expand_profile_dir(cls, value: str | Path) -> Path:
         if isinstance(value, Path):
             return value
         return Path(value).expanduser()
@@ -270,14 +337,20 @@ class Settings(BaseSettings):
         }
         if self.slow_mo_ms:
             launch_args["slow_mo"] = self.slow_mo_ms
+        if self.chromium_channel:
+            launch_args["channel"] = self.chromium_channel
+        if self.chromium_args:
+            launch_args["args"] = list(self.chromium_args)
         return launch_args
 
     def context_options(self) -> dict[str, object]:
         options: dict[str, object] = {
             "base_url": self.base_url,
-            "viewport": self.viewport(),
         }
-        if self.device_scale_factor is not None:
+        viewport_disabled = self.persistent_context_enabled and self.chromium_no_viewport
+        if not viewport_disabled:
+            options["viewport"] = self.viewport()
+        if self.device_scale_factor is not None and not viewport_disabled:
             options["device_scale_factor"] = self.device_scale_factor
         user_agent = self.user_agent or (self.fingerprint_user_agent if self.fingerprint_enabled else None)
         if user_agent:
@@ -297,8 +370,14 @@ class Settings(BaseSettings):
         options["has_touch"] = bool(self.fingerprint_max_touch_points)
         if self.storage_state_path:
             if self.storage_state_path.exists():
-                logger.info("Loading storage state from %s", self.storage_state_path)
-                options["storage_state"] = str(self.storage_state_path)
+                if self.persistent_context_enabled:
+                    logger.info(
+                        "Persistent context enabled; ignoring storage state %s (profile will manage cookies)",
+                        self.storage_state_path,
+                    )
+                else:
+                    logger.info("Loading storage state from %s", self.storage_state_path)
+                    options["storage_state"] = str(self.storage_state_path)
             else:
                 logger.debug(
                     "Storage state path %s not found; proceeding without preloaded session",

@@ -9,5 +9,9 @@ __pycache__/
 data/downloads/
 data/logs/
 data/storage/
+data/chrome-profile/
 tmp.html
 tmp_trace.network
+tmp/
+.pytest_cache/
+src/secure_scraper.egg-info/

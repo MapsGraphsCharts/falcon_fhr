@@ -1,0 +1,15 @@
+profile = "thanksgiving-4n"
+title = "Thanksgiving long weekend – 4 nights"
+notes = "26 Nov check-in, catalogue sweep, four-night stay."
+
+[search]
+check_in = "2025-11-26"
+nights = 4
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR"]
+
+[browser]
+headless = true
+# set to false (or run with --headed) to watch the UI
+log_level = "INFO"

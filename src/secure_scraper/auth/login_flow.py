@@ -69,12 +69,15 @@ class LoginFlow:
         trace_label = time.strftime("%Y%m%d-%H%M%S")
         trace_path = Path("data/logs/login_debug") / f"login_trace_{trace_label}.zip"
         trace_started = await self._maybe_start_trace(context, trace_path)
-        cred_future, session_future, on_request, on_response = self._install_session_watchers(context)
+        marker_monitoring = self.settings.login_monitor_markers
+        cred_future = session_future = on_request = on_response = None
+        if marker_monitoring:
+            cred_future, session_future, on_request, on_response = self._install_session_watchers(context)
         try:
             await self._submit_credentials(page)
             await self.verifier.maybe_solve(page)
             cred_seen, session_seen = await self._ensure_book_session(
-                context, cred_future, session_future
+                page, context, cred_future, session_future
             )
         finally:
             self._remove_session_watchers(context, on_request, on_response)
@@ -91,16 +94,19 @@ class LoginFlow:
                 "Login succeeded but expected auth network markers were not observed; continuing with cookie-based validation"
             )
 
-        if handshake_ok and cred_seen and session_seen:
-            await self.save_storage_state(context)
+        if handshake_ok:
+            if not marker_monitoring or (cred_seen and session_seen):
+                await self.save_storage_state(context)
+            elif marker_monitoring:
+                logger.warning(
+                    "Skipping storage state persistence due to incomplete login handshake "
+                    "(handshake_ok=%s, credentials_seen=%s, session_seen=%s)",
+                    handshake_ok,
+                    cred_seen,
+                    session_seen,
+                )
         else:
-            logger.warning(
-                "Skipping storage state persistence due to incomplete login handshake "
-                "(handshake_ok=%s, credentials_seen=%s, session_seen=%s)",
-                handshake_ok,
-                cred_seen,
-                session_seen,
-            )
+            logger.warning("Skipping storage state persistence because handshake failed")
 
         if not LoginSelectors.travel_url_pattern.search(page.url):
             await page.goto(self.settings.base_url, wait_until="domcontentloaded")
@@ -406,51 +412,61 @@ class LoginFlow:
         return cred_future, session_future, on_request, on_response
 
     def _remove_session_watchers(self, context: BrowserContext, on_request, on_response) -> None:
-        try:
-            context.remove_listener("request", on_request)
-        except Exception:
-            pass
-        try:
-            context.remove_listener("response", on_response)
-        except Exception:
-            pass
+        if on_request:
+            try:
+                context.remove_listener("request", on_request)
+            except Exception:
+                pass
+        if on_response:
+            try:
+                context.remove_listener("response", on_response)
+            except Exception:
+                pass
 
     async def _await_session_ready(
         self,
-        cred_future: asyncio.Future[str],
-        session_future: asyncio.Future[int],
+        cred_future: asyncio.Future[str] | None,
+        session_future: asyncio.Future[int] | None,
     ) -> tuple[bool, bool]:
         cred_seen = False
         session_seen = False
-        try:
-            await asyncio.wait_for(cred_future, timeout=_SESSION_HANDSHAKE_TIMEOUT_S)
-            cred_seen = True
-        except asyncio.TimeoutError:
-            logger.warning("Credentials-signin request not observed during login")
-        try:
-            await asyncio.wait_for(session_future, timeout=_SESSION_HANDSHAKE_TIMEOUT_S)
-            session_seen = True
-        except asyncio.TimeoutError:
-            logger.warning("Auth session response not observed during login")
+        if cred_future:
+            try:
+                await asyncio.wait_for(cred_future, timeout=_SESSION_HANDSHAKE_TIMEOUT_S)
+                cred_seen = True
+            except asyncio.TimeoutError:
+                logger.warning("Credentials-signin request not observed during login")
+        if session_future:
+            try:
+                await asyncio.wait_for(session_future, timeout=_SESSION_HANDSHAKE_TIMEOUT_S)
+                session_seen = True
+            except asyncio.TimeoutError:
+                logger.warning("Auth session response not observed during login")
         return cred_seen, session_seen
 
     async def _ensure_book_session(
         self,
+        page: Page,
         context: BrowserContext,
-        cred_future: asyncio.Future[str],
-        session_future: asyncio.Future[int],
+        cred_future: asyncio.Future[str] | None,
+        session_future: asyncio.Future[int] | None,
     ) -> tuple[bool, bool]:
-        logger.info("Navigating to book site to finalize session")
-        book_page = await context.new_page()
+        logger.info("Awaiting travel redirect to finalize session")
         try:
-            await book_page.goto(LoginSelectors.book_root_url, wait_until="domcontentloaded")
+            await page.wait_for_url(
+                LoginSelectors.travel_url_pattern,
+                wait_until="domcontentloaded",
+                timeout=_SESSION_HANDSHAKE_TIMEOUT_S * 1000,
+            )
             try:
-                await book_page.wait_for_load_state("networkidle")
+                await page.wait_for_load_state("networkidle", timeout=10_000)
             except Exception:
-                logger.debug("Book page networkidle wait interrupted")
+                logger.debug("Travel page networkidle wait interrupted")
+        except Exception:
+            logger.warning("Travel redirect not observed on primary page; warming book session manually")
+            await self._warm_book_session(context)
+        if cred_future or session_future:
             return await self._await_session_ready(cred_future, session_future)
-        finally:
-            await book_page.close()
         return False, False
 
     async def _warm_book_session(self, context: BrowserContext) -> None:

@@ -4,12 +4,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from typing import Iterable, Optional
 
 from playwright.async_api import Locator, Page
 
 from secure_scraper.config.settings import Settings
 from secure_scraper.selectors.login_page import LoginSelectors
+from secure_scraper.utils.fastmail import FastmailOtpFetcher
 from secure_scraper.utils.otp import OtpResolver
 
 logger = logging.getLogger(__name__)
@@ -25,9 +27,15 @@ _VERIFICATION_TEXT_SNIPPETS = (
 _CHALLENGE_POLL_INTERVAL_S = 0.5
 _CHALLENGE_DETECTION_TIMEOUT_S = 12.0
 _OTP_INPUT_TIMEOUT_S = 30.0
-_CHALLENGE_RESOLVE_TIMEOUT_S = 20.0
+_CHALLENGE_RESOLVE_TIMEOUT_S = 40.0
+_OTP_REQUEST_COOLDOWN_S = 25.0
 _MAX_ATTEMPTS = 3
 _ADD_DEVICE_HEADING = re.compile(r"Add This Device", re.IGNORECASE)
+_ACCOUNT_LOCK_TEXTS = (
+    "account is temporarily locked",
+    "we could not complete your request",
+    "contact us for further assistance",
+)
 
 
 class TwoStepVerifier:
@@ -35,7 +43,23 @@ class TwoStepVerifier:
 
     def __init__(self, settings: Settings, otp_resolver: Optional[OtpResolver] = None) -> None:
         self.settings = settings
-        self.otp_resolver = otp_resolver or OtpResolver(secret=settings.mfa_secret)
+        if otp_resolver:
+            self.otp_resolver = otp_resolver
+        else:
+            email_fetcher = None
+            if settings.fastmail_api_token:
+                email_fetcher = FastmailOtpFetcher(
+                    api_token=settings.fastmail_api_token,
+                    mailbox=settings.fastmail_mailbox,
+                    sender=settings.fastmail_sender_filter,
+                    subject_pattern=settings.fastmail_subject_pattern,
+                    code_pattern=settings.fastmail_code_pattern,
+                    poll_interval=settings.fastmail_poll_interval_s,
+                    timeout=settings.fastmail_timeout_s,
+                    recent_window=settings.fastmail_recent_window_s,
+                    message_limit=settings.fastmail_message_limit,
+                )
+            self.otp_resolver = OtpResolver(secret=settings.mfa_secret, email_fetcher=email_fetcher)
 
     async def maybe_solve(self, page: Page) -> bool:
         if not await self._challenge_present(page):
@@ -44,6 +68,7 @@ class TwoStepVerifier:
         logger.info("Two-step verification challenge detected")
         handled = False
         attempt = 0
+        last_code_at: float | None = None
 
         while await self._challenge_present(page):
             attempt += 1
@@ -52,6 +77,15 @@ class TwoStepVerifier:
 
             if attempt > 1:
                 logger.info("Retrying two-step verification (attempt %s)", attempt)
+                if last_code_at is not None:
+                    elapsed = time.monotonic() - last_code_at
+                    if elapsed < _OTP_REQUEST_COOLDOWN_S:
+                        wait_for = _OTP_REQUEST_COOLDOWN_S - elapsed
+                        logger.info(
+                            "Waiting %.1fs before requesting another Amex OTP email",
+                            wait_for,
+                        )
+                        await asyncio.sleep(wait_for)
 
             await self._select_email_method(page)
             input_locator = await self._wait_for_input(page)
@@ -59,6 +93,7 @@ class TwoStepVerifier:
                 raise RuntimeError("OTP input not found during challenge handling")
 
             code = (await self.otp_resolver.obtain_code()).strip()
+            last_code_at = time.monotonic()
             await input_locator.fill(code)
 
             submit_locator = await self._find_submit(page)
@@ -74,6 +109,8 @@ class TwoStepVerifier:
                 logger.info("Two-step verification cleared")
                 await self._dismiss_add_device_prompt(page)
                 break
+            if await self._is_account_locked(page):
+                raise RuntimeError("Two-step verification blocked: account temporarily locked by Amex")
             logger.warning("Two-step verification still active after attempt %s", attempt)
 
         return handled
@@ -169,9 +206,13 @@ class TwoStepVerifier:
                 return True
             if not await self._challenge_markers_present(page):
                 return True
+            if await self._is_account_locked(page):
+                return False
             if await self._has_error_message(page):
                 return False
             await asyncio.sleep(_CHALLENGE_POLL_INTERVAL_S)
+        if await self._is_account_locked(page):
+            return False
         return not await self._challenge_markers_present(page)
 
     async def _has_error_message(self, page: Page) -> bool:
@@ -192,6 +233,13 @@ class TwoStepVerifier:
                 return True
         for text in error_texts:
             if await page.get_by_text(text, exact=False).count():
+                return True
+        return False
+
+    async def _is_account_locked(self, page: Page) -> bool:
+        for text in _ACCOUNT_LOCK_TEXTS:
+            if await page.get_by_text(text, exact=False).count():
+                logger.error("Detected account lock message on two-step verification page (%s)", text)
                 return True
         return False
 

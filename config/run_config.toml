@@ -1,0 +1,31 @@
+# Basic run configuration used by scripts/run_scraper.py.
+# Copy this file (or point --config at another path) to maintain multiple profiles.
+
+profile = "default"
+title = "Two-week lookahead"
+notes = "Edit destinations to choose catalog keys or leave empty to reuse the manual fallback."
+
+[search]
+# ISO dates (YYYY-MM-DD) or relative offsets like "+14d", "+2w", "+1m".
+check_in = "+14d"
+nights = 3
+adults = 2
+# Provide catalog keys/groups (e.g. ["rome-it", "group:United States"]) or leave empty for manual search.
+destinations = []
+program_filter = []
+
+[browser]
+headless = true
+# set to false (or pass --headed) to watch the browser
+log_level = "INFO"
+# slow_mo_ms = 50
+# viewport_width = 1536
+# viewport_height = 864
+# device_scale_factor = 2
+
+[manual_destination]
+# Uncomment to override the manual fallback destination without touching .env.
+# name = "Rome (and vicinity), Lazio, Italy"
+# location_id = "ZMETRO-EXPEDIA-179899"
+# latitude = 41.903755
+# longitude = 12.479556

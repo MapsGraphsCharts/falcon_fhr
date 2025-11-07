@@ -24,10 +24,13 @@ class BrowserSession:
     _playwright_cm: Optional[AbstractAsyncContextManager] = None
     _playwright: Optional[Playwright] = None
     _browser: Optional[Browser] = None
+    _persistent_context: Optional[BrowserContext] = None
     _stealth: Optional[StealthManager] = None
 
     async def __aenter__(self) -> "BrowserSession":  # noqa: D401
         self.settings.ensure_directories()
+        if self.settings.persistent_context_enabled:
+            self.settings.persistent_user_data_dir.mkdir(parents=True, exist_ok=True)
 
         self._stealth = StealthManager(
             self.settings.stealth_enabled,
@@ -37,9 +40,10 @@ class BrowserSession:
         self._playwright_cm = self._stealth.wrap_playwright()
         self._playwright = await self._playwright_cm.__aenter__()
 
-        launch_args = self.settings.chromium_launch_args()
-        logger.info("Launching Chromium with args: %s", launch_args)
-        self._browser = await self._playwright.chromium.launch(**launch_args)
+        if not self.settings.persistent_context_enabled:
+            launch_args = self.settings.chromium_launch_args()
+            logger.info("Launching Chromium with args: %s", launch_args)
+            self._browser = await self._playwright.chromium.launch(**launch_args)
         return self
 
     async def __aexit__(
@@ -48,6 +52,8 @@ class BrowserSession:
         exc: Optional[BaseException],
         tb: Optional[TracebackType],
     ) -> None:
+        if self._persistent_context:
+            await self._close_persistent_context()
         if self._browser:
             await self._browser.close()
         if self._playwright_cm:
@@ -63,7 +69,14 @@ class BrowserSession:
         """Create a new context with stealth applied."""
         options = {**self.settings.context_options(), **overrides}
         logger.debug("Creating context with options: %s", options)
-        context = await self.browser.new_context(**options)
+        if self.settings.persistent_context_enabled:
+            context = await self._launch_persistent_context(options)
+        else:
+            context = await self.browser.new_context(**options)
+        context = await self._prepare_context(context)
+        return context
+
+    async def _prepare_context(self, context: BrowserContext) -> BrowserContext:
         if self._stealth:
             await self._stealth.apply(context)
         await apply_fingerprint_overrides(context, self.settings)
@@ -84,6 +97,53 @@ class BrowserSession:
             if not key.lower().startswith("sec-ch-")
         }
         await route.continue_(headers=headers)
+
+    async def _launch_persistent_context(self, options: dict[str, object]) -> BrowserContext:
+        if not self._playwright:
+            raise RuntimeError("Playwright not initialised")
+        await self._close_persistent_context()
+        persistent_options = {**self.settings.chromium_launch_args(), **options}
+        if self.settings.chromium_no_viewport:
+            persistent_options["no_viewport"] = True
+            persistent_options.pop("viewport", None)
+        user_data_dir = self.settings.persistent_user_data_dir
+        logger.info(
+            "Launching persistent Chromium profile at %s with args: %s",
+            user_data_dir,
+            {k: v for k, v in persistent_options.items() if k != "args"},
+        )
+        channel = persistent_options.get("channel")
+        try:
+            context = await self._playwright.chromium.launch_persistent_context(
+                user_data_dir=str(user_data_dir),
+                **persistent_options,
+            )
+        except Exception as exc:
+            if channel:
+                logger.warning(
+                    "Failed to launch persistent context with channel '%s': %s; retrying without channel",
+                    channel,
+                    exc,
+                )
+                fallback_options = {k: v for k, v in persistent_options.items() if k != "channel"}
+                context = await self._playwright.chromium.launch_persistent_context(
+                    user_data_dir=str(user_data_dir),
+                    **fallback_options,
+                )
+            else:
+                raise
+        self._persistent_context = context
+        return context
+
+    async def _close_persistent_context(self) -> None:
+        if not self._persistent_context:
+            return
+        try:
+            await self._persistent_context.close()
+        except Exception:  # pragma: no cover - best effort cleanup
+            logger.exception("Failed to close persistent context")
+        finally:
+            self._persistent_context = None
 
 
 async def ensure_close_context(context: BrowserContext) -> None:
