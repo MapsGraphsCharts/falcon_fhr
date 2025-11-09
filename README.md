@@ -8,7 +8,7 @@ and browser orchestration cleanly separated while making it easy to toggle steal
 - Async-first Patchright (Playwright-compatible) workflows for headed or headless sessions
 - Stealth layer built around [`playwright-stealth`](https://github.com/mattwmaster58/playwright_stealth)
 - Config management through environment variables with type validation
-- Hooks for login/search/download orchestration and JSON persistence
+- Hooks for login/search orchestration with SQLite persistence
 - Extensible task modules and selector registries for complex pages
 
 ## Repository Layout
@@ -26,10 +26,10 @@ and browser orchestration cleanly separated while making it easy to toggle steal
 │       ├── core/           # Browser factories, stealth binding, logging
 │       ├── selectors/      # Centralised locator maps per page/task
 │       ├── storage/        # Data writers (JSON, DB, cloud, ...)
-│       ├── tasks/          # High-level scraping workflows (search, download)
+│       ├── tasks/          # High-level scraping workflows (search orchestration)
 │       └── utils/          # Shared utilities (throttling, retries, metrics)
 ├── tests/                  # Async unit/integration tests
-└── data/                   # Local persistence (logs, downloads)
+└── data/                   # Local persistence (logs, storage)
 ```
 
 ## Getting Started
@@ -66,7 +66,7 @@ and browser orchestration cleanly separated while making it easy to toggle steal
      step_days = 1             # run every night
      nights = 1                # override stay length per iteration
      ```
-     Each iteration writes to `data/downloads/<destination>/<YYYY-MM-DD>/...` and produces `master_*_YYYY-MM-DD.json` aggregates.
+     Each iteration records a row in the `search_runs` table (plus `hotels`, `rates`, etc.) so sweeps can resume mid-way without replaying completed destinations.
 3. Install project dependencies:
    ```bash
    python -m venv .venv && source .venv/bin/activate
@@ -86,7 +86,7 @@ and browser orchestration cleanly separated while making it easy to toggle steal
    # Layer quick tweaks without editing config:
    #   PYTHONPATH=src python scripts/run_scraper.py --override search_check_in="2025-11-20"
    ```
-   After login the script warms up the search results page and calls the `hotel/properties` API directly, saving both the raw response (`data/downloads/hotels_raw.json`) and a simplified list (`data/downloads/hotels.json`).
+   After login the script warms up the search results page and calls the `hotel/properties` API directly, persisting the raw payload plus the derived hotel/rate rows into `data/storage/hotels.sqlite3`.
 
 ### Inspecting capture artefacts
 Use the analyzer to summarise tokens and cookies stored during a capture run:
@@ -98,12 +98,20 @@ PYTHONPATH=src python -m secure_scraper.analysis.analyze_capture \\
 The summary lists high-value endpoints, extracted tokens (e.g. `publicGuid`, `assessmentToken`), and the complete cookie inventory grouped by domain.
 
 ### API-based search
-After login the scraper opens the travel search-results route to satisfy Amex's anti-bot checks before POSTing to `…/hotel/properties`. Payloads are generated via `SearchParams`. For each destination a subdirectory is created under `data/downloads/<destination_key>/` containing:
-- the raw API payload (`hotels_raw.json`)
-- a DB-ready hotel metadata snapshot (`hotels_normalized.json`)
-- a stay-specific rate snapshot (`rates_normalized.json`)
+After login the scraper opens the travel search-results route to satisfy Amex's anti-bot checks before POSTing to `…/hotel/properties`. Payloads are generated via `SearchParams`, and every response is normalized directly into SQLite (`destinations`, `search_runs`, `hotels`, `room_types`, `rate_snapshots`, etc.).
 
-When multiple destinations are processed the normalised aggregates are deduplicated into `master_hotels_normalized.json` and `master_rates_normalized.json`. Override the default destination/dates/adults through `config/run_config.toml` (or `SCRAPER_SEARCH_*` env overrides) or construct custom payloads in code.
+Rerunning the CLI will now consult the DB before each destination: if the latest run for a given signature (label + check-in/check-out + adults/program filters) is already `complete`, the scraper skips it automatically so you resume exactly where the last sweep failed. Override the default destination/dates/adults through `config/run_config.toml` (or `SCRAPER_SEARCH_*` env overrides) or construct custom payloads programmatically.
+
+### Structured storage (SQLite)
+- Flip `SCRAPER_SQLITE_STORAGE_ENABLED=true` (or set `[storage] sqlite_enabled = true` in your run_config) to persist each destination run into `data/storage/hotels.sqlite3`.
+- The store tracks `search_runs` (status, request IDs, labels), immutable `destinations`, deduplicated `hotels`, `room_types`, and one row per stay-specific `rate_snapshot` along with nightly prices and fee/tax components.
+- Full JSON payloads are kept in `search_payloads` and `hotel_payloads`, so you retain every field even before it is mapped onto columns.
+- Resume support becomes simpler: every run is marked `running`/`complete`/`failed`, so you can spot and rerun destinations that crashed mid-way without losing history.
+- Point BI tools or ad-hoc SQL at the file whenever you want deeper analysis without juggling dozens of JSON dumps.
+- If you're developing with the DB open in another tool, tune `SCRAPER_SQLITE_BUSY_TIMEOUT_MS` (default 2000 ms) so the scraper fails fast instead of hanging behind a DataGrip lock.
+
+### Value analysis helpers
+- Use `scripts/analyze_value_windows.py` to surface large price swings per room type (default query inspects Japan FHR sweeps). Point it at any SQLite capture with `--db data/storage/hotels.sqlite3` and trim the window/destination clauses as needed.
 
 ### Destination catalog
 - The maintained catalog lives at `data/destinations/catalog.json`. Each entry contains a unique key, the Amex display name, and placeholders for the required metadata (`location_id`, `latitude`, `longitude`).
@@ -114,7 +122,7 @@ When multiple destinations are processed the normalised aggregates are deduplica
   PYTHONPATH=src python scripts/manage_destinations.py --hydrate-missing   # fill location_id/lat/lon
   ```
   This prints entries that still need metadata before they can be searched. Populate the missing fields manually or extend the script to harvest them automatically from captured traffic.
-- Per-destination results now live in `data/downloads/<destination_key>/`.
+- Per-destination results now live exclusively in SQLite; inspect them via SQL or ad-hoc tooling instead of chasing JSON files.
 
 ### Filtering & automation tips
 - Provide the JSON list `SCRAPER_SEARCH_PROGRAM_FILTER` to restrict results to Fine Hotels + Resorts® or The Hotel Collection, for example:
@@ -131,7 +139,10 @@ When multiple destinations are processed the normalised aggregates are deduplica
 ## Next Steps
 - Expand `SearchParams` to cover additional filters (price ranges, loyalty tiers, amenities).
 - Improve `LoginFlow` resilience with analytics around failed MFA attempts or credential lockouts.
-- Extend `storage.json_writer.JsonStore` with streaming writes or cloud transports as needed.
+- Add lightweight SQL views/exporters for BI tools (DuckDB, Arrow, etc.) as workflows evolve.
+
+## Changelog
+See `docs/CHANGELOG.md` for a living summary of the SQLite migration, new helper scripts, and other unreleased work.
 
 ## References
 - Patchright Python docs (`/Kaliiiiiiiiii-Vinyzu/patchright-python`) for drop-in Playwright compatibility.

@@ -27,6 +27,8 @@ SEARCH_REDIRECT_URL = (
     "https://consumer-travel.americanexpress.com/en-us/travel/search-redirect"
 )
 BOOK_ROOT_URL = "https://www.travel.americanexpress.com/en-us/book/"
+NEXT_AUTH_COOKIE = "__Secure-next-auth.session-token"
+LEGACY_SESSION_COOKIES = {"amexsessioncookie", "aat"}
 
 
 class UnauthorizedSearchError(RuntimeError):
@@ -36,6 +38,16 @@ class UnauthorizedSearchError(RuntimeError):
         super().__init__(f"Search request unauthorized ({status})")
         self.status = status
         self.body = body
+
+
+class BackendUnavailableError(RuntimeError):
+    """Raised when the upstream properties API returns a transient 5xx error."""
+
+    def __init__(self, status: int, body: str) -> None:
+        snippet = (body or "")[:256]
+        super().__init__(f"Hotel properties API unavailable ({status})")
+        self.status = status
+        self.body = snippet
 
 
 class SessionRefreshError(RuntimeError):
@@ -64,7 +76,10 @@ class SearchClient:
         if extra_headers:
             base_headers.update(extra_headers)
 
-        account_token = await self._ensure_account_token()
+        try:
+            account_token = await self._ensure_account_token()
+        except RuntimeError as exc:
+            raise SessionRefreshError(str(exc)) from exc
 
         aggregated_response: Optional[Dict[str, Any]] = None
         page_number = params.page
@@ -113,6 +128,13 @@ class SearchClient:
         self._account_token = token
         return token
 
+    async def _has_authenticated_cookies(self) -> bool:
+        cookies = await self.context.cookies()
+        names = {cookie.get("name") for cookie in cookies if cookie.get("name")}
+        if NEXT_AUTH_COOKIE in names:
+            return True
+        return LEGACY_SESSION_COOKIES.issubset(names)
+
     async def _fetch_properties_page(
         self,
         params: SearchParams,
@@ -124,6 +146,7 @@ class SearchClient:
         current_token = account_token
         payload = params.to_payload()
         use_warmup = warmup_page
+        last_backend_error: BackendUnavailableError | None = None
 
         for refresh_attempt in range(3):
             page: Optional[Page] = None
@@ -168,7 +191,18 @@ class SearchClient:
                     raise SessionRefreshError(str(token_error)) from token_error
                 await self._refresh_travel_session()
                 use_warmup = True
+            except BackendUnavailableError as exc:
+                last_backend_error = exc
+                logger.warning(
+                    "Hotel properties POST returned %s; retrying (%s/3)",
+                    exc.status,
+                    refresh_attempt + 1,
+                )
+                await asyncio.sleep(min(5, refresh_attempt + 1))
+                continue
 
+        if last_backend_error is not None:
+            raise last_backend_error
         raise SessionRefreshError("Search request failed after refreshing session")
 
     async def _post_properties(self, payload: dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
@@ -192,6 +226,8 @@ class SearchClient:
         text = await response.text()
         if response.status in (401, 403):
             raise UnauthorizedSearchError(response.status, text)
+        if 500 <= response.status < 600:
+            raise BackendUnavailableError(response.status, text)
         raise RuntimeError(f"Search request failed ({response.status}): {text[:512]}")
 
     async def _refresh_travel_session(self) -> None:
@@ -255,6 +291,10 @@ class SearchClient:
         )
 
     async def _fetch_account_token(self) -> str:
+        if not await self._has_authenticated_cookies():
+            logger.warning("Authentication cookies missing; login required before token fetch")
+            raise RuntimeError("Authentication cookies missing; login required before token fetch")
+        empty_auth_responses = 0
         for attempt in range(5):
             logger.info("Requesting account token (attempt %s)", attempt + 1)
             page = await self.context.new_page()
@@ -298,6 +338,17 @@ class SearchClient:
                 if token:
                     logger.info("Obtained account token on attempt %s", attempt + 1)
                     return token
+                if status == 200:
+                    empty_auth_responses += 1
+                    if empty_auth_responses >= 2:
+                        logger.warning(
+                            "auth/session returned HTTP 200 without clientCustomerId twice; forcing re-login"
+                        )
+                        raise RuntimeError(
+                            "auth/session returned HTTP 200 without clientCustomerId twice; authentication likely expired"
+                        )
+                else:
+                    empty_auth_responses = 0
                 if status:
                     logger.warning(
                         "auth/session HTTP %s on attempt %s (preview: %s)",

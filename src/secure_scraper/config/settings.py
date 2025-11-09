@@ -84,7 +84,22 @@ class Settings(BaseSettings):
     viewport_height: int = 720
     device_scale_factor: Optional[float] = None
     user_agent: Optional[str] = None
-    download_dir: Path = Field(default=Path("data/downloads"))
+    sqlite_storage_enabled: bool = Field(
+        default=True,
+        description="Persist each destination run to SQLite for downstream processing",
+    )
+    sqlite_storage_path: Path = Field(
+        default=Path("data/storage/hotels.sqlite3"),
+        description="Location of the SQLite database used for structured storage",
+    )
+    sqlite_busy_timeout_ms: int = Field(
+        default=2000,
+        description="Milliseconds to wait for SQLite locks before failing; keep low to avoid long hangs",
+    )
+    resume_completed_runs: bool = Field(
+        default=True,
+        description="Skip destinations whose latest run is already complete in SQLite storage",
+    )
     log_level: str = Field(default="INFO")
     default_timeout_ms: int = Field(default=15000)
     navigation_timeout_ms: int = Field(default=30000)
@@ -92,7 +107,7 @@ class Settings(BaseSettings):
         default=Path("data/destinations/catalog.json"), description="Path to destination catalog metadata"
     )
 
-    stealth_enabled: bool = Field(default=True, description="Apply playwright-stealth evasions")
+    stealth_enabled: bool = Field(default=False, description="Apply playwright-stealth evasions")
     stealth_init_scripts_only: bool = False
     stealth_languages: Optional[Tuple[str, str]] = None
     stealth_platform: Optional[str] = None
@@ -148,7 +163,7 @@ class Settings(BaseSettings):
     )
 
     fingerprint_enabled: bool = Field(
-        default=True, description="If true apply custom fingerprint overrides in browser context"
+        default=False, description="If true apply custom fingerprint overrides in browser context"
     )
     fingerprint_user_agent: Optional[str] = Field(
         default="Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0",
@@ -197,12 +212,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="allow",
     )
-
-    @field_validator("download_dir", mode="before")
-    def _expand_download_dir(cls, value: str | Path) -> Path:  # noqa: D401
-        if isinstance(value, Path):
-            return value
-        return Path(value).expanduser()
 
     @field_validator("storage_state_path", mode="before")
     def _expand_storage_state(cls, value: str | Path | None) -> Optional[Path]:
@@ -326,7 +335,8 @@ class Settings(BaseSettings):
 
     def ensure_directories(self) -> None:
         """Create directories that must exist at runtime."""
-        self.download_dir.mkdir(parents=True, exist_ok=True)
+        if self.sqlite_storage_enabled:
+            self.sqlite_storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     def viewport(self) -> dict[str, int]:
         return {"width": self.viewport_width, "height": self.viewport_height}

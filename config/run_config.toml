@@ -23,6 +23,12 @@ log_level = "INFO"
 # viewport_height = 864
 # device_scale_factor = 2
 
+[storage]
+# Flip on when you want SQLite persistence in addition to JSON dumps.
+sqlite_enabled = false
+# sqlite_path = "data/storage/hotels.sqlite3"
+# sqlite_busy_timeout_ms = 2000
+
 [manual_destination]
 # Uncomment to override the manual fallback destination without touching .env.
 # name = "Rome (and vicinity), Lazio, Italy"

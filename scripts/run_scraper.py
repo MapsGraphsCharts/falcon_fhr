@@ -21,8 +21,12 @@ from secure_scraper.hotels import (
     HotelRecord,
     build_hotel_and_rate_records,
 )
-from secure_scraper.services.search_client import SearchClient, SessionRefreshError
-from secure_scraper.tasks.download import DownloadTask
+from secure_scraper.services.search_client import (
+    BackendUnavailableError,
+    SearchClient,
+    SessionRefreshError,
+)
+from secure_scraper.storage import SqliteStore
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
 
 
@@ -120,13 +124,26 @@ def _resolve_destinations(settings: Settings) -> list[Destination]:
 
 
 async def run(settings: Settings, sweeps: list[DateSweep]) -> None:
-    async with BrowserSession(settings) as session:
-        context = await session.new_context()
-        try:
-            for sweep in sweeps:
-                context = await _run_sweep(session, context, settings, sweep)
-        finally:
-            await ensure_close_context(context)
+    db_store: SqliteStore | None = None
+    if settings.sqlite_storage_enabled:
+        db_store = SqliteStore(
+            settings.sqlite_storage_path,
+            busy_timeout_ms=settings.sqlite_busy_timeout_ms,
+        )
+        await db_store.initialize()
+    try:
+        async with BrowserSession(settings) as session:
+            context: BrowserContext | None = None
+            try:
+                context = await session.new_context()
+                for sweep in sweeps:
+                    context = await _run_sweep(session, context, settings, sweep, db_store=db_store)
+            finally:
+                if context:
+                    await ensure_close_context(context)
+    finally:
+        if db_store:
+            await db_store.close()
 
 
 async def _run_sweep(
@@ -134,6 +151,8 @@ async def _run_sweep(
     context: BrowserContext,
     settings: Settings,
     sweep: DateSweep,
+    *,
+    db_store: SqliteStore | None = None,
 ) -> BrowserContext:
     if sweep.check_in:
         settings.search_check_in = sweep.check_in
@@ -154,10 +173,6 @@ async def _run_sweep(
     destinations = _resolve_destinations(settings)
 
     client = SearchClient(context)
-    downloader = DownloadTask(settings.download_dir)
-
-    aggregated_hotels: list[dict[str, object]] = []
-    aggregated_rates: list[dict[str, object]] = []
 
     for destination in destinations:
         location_id = destination.location_id
@@ -185,116 +200,106 @@ async def _run_sweep(
             destination.name,
         )
 
-        last_error: Exception | None = None
-        results: dict[str, object] | None = None
-        for rebuild_attempt in range(2):
-            try:
-                results = await client.fetch_properties(params, warmup_page=warmup_page)
-                last_error = None
-                break
-            except SessionRefreshError as exc:
-                last_error = exc
-                logging.warning(
-                    "Session refresh failed for %s; rebuilding authentication (attempt %s)",
-                    destination.key,
-                    rebuild_attempt + 1,
-                )
-                await ensure_close_context(context)
-                context = await session.new_context()
-                login_flow = LoginFlow(settings)
-                page = await login_flow.run(context)
-                try:
-                    await page.close()
-                except Exception:
-                    pass
-                client = SearchClient(context)
-                continue
-        if last_error is not None:
-            raise RuntimeError(
-                f"Unable to recover session while fetching {destination.key}"
-            ) from last_error
-
-        assert results is not None
-        hotels_payload = results.get("hotels", [])
-
-        hotel_records, rate_records = build_hotel_and_rate_records(
-            results, destination=destination, params=params
-        )
-        hotel_dicts = HotelRecord.from_iterable(hotel_records)
-        rate_dicts = HotelRateRecord.from_iterable(rate_records)
-
-        destination_subdir = destination.key
-        if label:
-            destination_subdir = f"{destination_subdir}/{label}"
-        destination_dir = settings.download_dir / destination_subdir
-        destination_dir.mkdir(parents=True, exist_ok=True)
-
-        normalized_hotels_path = await downloader.run(
-            hotel_dicts,
-            filename="hotels_normalized.json",
-            subdir=destination_subdir,
-        )
-        normalized_rates_path = await downloader.run(
-            rate_dicts,
-            filename="rates_normalized.json",
-            subdir=destination_subdir,
-        )
-        raw_path = destination_dir / "hotels_raw.json"
-        raw_path.write_text(json.dumps(results, indent=2))
-
-        logging.info("Fetched %s hotels for %s", len(hotels_payload), destination.key)
-        logging.info("Normalized hotels saved to %s", normalized_hotels_path)
-        logging.info("Normalized rates saved to %s", normalized_rates_path)
-        logging.info("Full payload saved to %s", raw_path)
-
-        aggregated_hotels.extend(hotel_dicts)
-        aggregated_rates.extend(rate_dicts)
-
-        master_suffix = f"_{label}" if label else ""
-        if aggregated_hotels:
-            unique_records: dict[str, dict[str, object]] = {}
-            for record in aggregated_hotels:
-                property_id = record.get("property_id")
-                if not property_id:
-                    continue
-                unique_records[property_id] = record
-            master_path = await downloader.run(
-                list(unique_records.values()), filename=f"master_hotels_normalized{master_suffix}.json"
-            )
-            logging.info(
-                "Aggregated master list (%s properties) saved to %s",
-                len(unique_records),
-                master_path,
-            )
-
-        if aggregated_rates:
-            unique_rates: dict[str, dict[str, object]] = {}
-            for record in aggregated_rates:
-                search = record.get("search") or {}
-                property_id = record.get("property_id")
-                if not property_id:
-                    continue
-                key = "|".join(
-                    str(part) if part is not None else ""
-                    for part in (
-                        property_id,
-                        record.get("rate_id"),
-                        record.get("room_type_id"),
-                        search.get("check_in"),
-                        search.get("check_out"),
+        if db_store and settings.resume_completed_runs:
+            existing_run = await db_store.fetch_latest_run(destination=destination, params=params, label=label)
+            if existing_run:
+                if existing_run.status == "complete":
+                    timestamp = existing_run.completed_at or existing_run.updated_at
+                    logging.info(
+                        "Skipping %s; latest run (id=%s) finished at %s",
+                        destination.key,
+                        existing_run.id,
+                        timestamp,
                     )
+                    continue
+                if existing_run.status == "failed":
+                    logging.info(
+                        "Re-running %s; previous attempt (id=%s) failed%s",
+                        destination.key,
+                        existing_run.id,
+                        f" ({existing_run.failure_reason})" if existing_run.failure_reason else "",
+                    )
+
+        last_session_error: SessionRefreshError | None = None
+        backend_failure: BackendUnavailableError | None = None
+        results: dict[str, object] | None = None
+        run_id: int | None = None
+        try:
+            for rebuild_attempt in range(2):
+                try:
+                    if db_store and run_id is None:
+                        run_id = await db_store.begin_run(destination=destination, params=params, label=label)
+                    results = await client.fetch_properties(params, warmup_page=warmup_page)
+                    last_session_error = None
+                    backend_failure = None
+                    break
+                except SessionRefreshError as exc:
+                    last_session_error = exc
+                    logging.warning(
+                        "Session refresh failed for %s; rebuilding authentication (attempt %s)",
+                        destination.key,
+                        rebuild_attempt + 1,
+                    )
+                    await ensure_close_context(context)
+                    context = await session.new_context()
+                    login_flow = LoginFlow(settings)
+                    page = await login_flow.run(context)
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                    client = SearchClient(context)
+                    continue
+                except BackendUnavailableError as exc:
+                    backend_failure = exc
+                    logging.warning(
+                        "Hotel properties API unavailable for %s (HTTP %s); skipping destination",
+                        destination.key,
+                        exc.status,
+                    )
+                    break
+            if last_session_error is not None:
+                raise RuntimeError(
+                    f"Unable to recover session while fetching {destination.key}"
+                ) from last_session_error
+
+            if backend_failure is not None:
+                reason = f"Properties API returned HTTP {backend_failure.status}: {backend_failure.body}"
+                if db_store and run_id is not None:
+                    await db_store.mark_run_failed(run_id, reason)
+                    run_id = None
+                continue
+
+            assert results is not None
+            hotels_payload = results.get("hotels", [])
+
+            hotel_records, rate_records = build_hotel_and_rate_records(
+                results, destination=destination, params=params
+            )
+            hotel_dicts = HotelRecord.from_iterable(hotel_records)
+            rate_dicts = HotelRateRecord.from_iterable(rate_records)
+
+            logging.info("Fetched %s hotels for %s", len(hotels_payload), destination.key)
+
+            if db_store and run_id is not None:
+                context_payload = results.get("context") if isinstance(results.get("context"), dict) else None
+                request_id = context_payload.get("requestId") if context_payload else None
+                await db_store.store_run_payload(run_id, results)
+                await db_store.save_hotels(run_id, hotel_dicts)
+                await db_store.save_rates(run_id, rate_dicts)
+                await db_store.finalize_run(
+                    run_id,
+                    total_hotels=len(hotel_dicts),
+                    total_rates=len(rate_dicts),
+                    request_id=request_id,
+                    context=context_payload,
                 )
-                if key not in unique_rates:
-                    unique_rates[key] = record
-            master_rates_path = await downloader.run(
-                list(unique_rates.values()),
-                filename=f"master_rates_normalized{master_suffix}.json",
-            )
-            logging.info(
-                "Aggregated master rates list (%s entries) saved to %s",
-                len(unique_rates),
-                master_rates_path,
-            )
+                run_id = None
+        except Exception as exc:
+            if db_store and run_id is not None:
+                await db_store.mark_run_failed(run_id, str(exc))
+            raise
+
     return context
 
 

@@ -77,6 +77,20 @@ class BrowserSection(BaseModel):
     log_level: Optional[str] = None
 
 
+class StorageSection(BaseModel):
+    """Structured storage overrides (e.g. SQLite persistence)."""
+
+    sqlite_enabled: Optional[bool] = Field(
+        default=None, description="Toggle SQLite storage for hotel/rate snapshots"
+    )
+    sqlite_path: Optional[str] = Field(
+        default=None, description="Override the SQLite file path"
+    )
+    sqlite_busy_timeout_ms: Optional[int] = Field(
+        default=None, description="Override SQLite busy timeout (ms) for locks"
+    )
+
+
 class ManualDestinationSection(BaseModel):
     """Optional manual destination override."""
 
@@ -161,9 +175,9 @@ class RunConfig(BaseModel):
     search: SearchSection = Field(default_factory=SearchSection)
     browser: BrowserSection = Field(default_factory=BrowserSection)
     manual_destination: Optional[ManualDestinationSection] = None
+    storage: Optional[StorageSection] = None
     destination_catalog_path: Optional[str] = None
     storage_state_path: Optional[str] = None
-    download_dir: Optional[str] = None
     date_range: Optional[DateRangeSection] = None
 
     @classmethod
@@ -178,6 +192,7 @@ class RunConfig(BaseModel):
         """Apply overrides to an existing Settings instance."""
         self._apply_search(settings)
         self._apply_browser(settings)
+        self._apply_storage(settings, base_dir)
         self._apply_manual_destination(settings)
         self._apply_paths(settings, base_dir)
 
@@ -219,6 +234,17 @@ class RunConfig(BaseModel):
         if browser.log_level:
             settings.log_level = browser.log_level
 
+    def _apply_storage(self, settings: "Settings", base_dir: Optional[Path]) -> None:
+        storage = self.storage
+        if not storage:
+            return
+        if storage.sqlite_enabled is not None:
+            settings.sqlite_storage_enabled = storage.sqlite_enabled
+        if storage.sqlite_path:
+            settings.sqlite_storage_path = _resolve_path(storage.sqlite_path, base_dir)
+        if storage.sqlite_busy_timeout_ms is not None:
+            settings.sqlite_busy_timeout_ms = storage.sqlite_busy_timeout_ms
+
     def _apply_manual_destination(self, settings: "Settings") -> None:
         manual = self.manual_destination
         if not manual:
@@ -237,8 +263,6 @@ class RunConfig(BaseModel):
             settings.destination_catalog_path = _resolve_path(self.destination_catalog_path, base_dir)
         if self.storage_state_path:
             settings.storage_state_path = _resolve_path(self.storage_state_path, base_dir)
-        if self.download_dir:
-            settings.download_dir = _resolve_path(self.download_dir, base_dir)
 
     def date_sweeps(self) -> list[DateSweep]:
         if not self.date_range:

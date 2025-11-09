@@ -1,0 +1,20 @@
+profile = "catalog-snapshot"
+title = "Global hotel inventory snapshot"
+notes = "One-night far-future sweep across all catalog destinations to hydrate the DB (FHR only; THC requires >=2 nights)."
+
+[search]
+# Push far enough out that inventory is rarely sold out; adjust as needed.
+check_in = "+240d"
+nights = 5
+adults = 2
+# Include every ready destination; trim to specific groups if you want smaller batches.
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[storage]
+sqlite_enabled = true
+# sqlite_path = "data/storage/hotels.sqlite3"

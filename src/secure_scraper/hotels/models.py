@@ -283,6 +283,10 @@ class HotelRateRecord:
             "rate_id": self.rate_id,
             "summary": summary,
             "search": self.search.to_dict(),
+            # Persist promo metadata at the top level so downstream stores can access it directly.
+            "special_offer": self.special_offer,
+            "supplier_rate_promotion": self.supplier_rate_promotion,
+            "comparison_amenity": self.comparison_amenity,
             "raw": self.raw,
         }
 

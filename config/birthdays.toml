@@ -1,0 +1,24 @@
+profile = "birthday-range"
+title = "Kelly + Tim Birthday Search"
+notes = "1-night FHR stays across Japan Jan–May 2026."
+
+[search]
+check_in = "2026-08-02"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[storage]
+sqlite_enabled = true
+# sqlite_path = "data/storage/hotels.sqlite3"
+#
+#[date_range]
+#start = "2026-08-02"
+#end = "2026-08-05"
+#step_days = 1
+#nights = 3
