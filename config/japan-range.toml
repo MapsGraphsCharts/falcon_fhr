@@ -1,10 +1,10 @@
 profile = "japan-range"
 title = "Japan nightly sweep"
-notes = "1-night FHR stays across Japan Jan–May 2026."
+notes = "3-night FHR stays across Japan for January 2026."
 
 [search]
 check_in = "2026-01-01"
-nights = 1
+nights = 3
 adults = 2
 destinations = ["ap-japan"]
 program_filter = ["FHR"]
@@ -15,9 +15,9 @@ log_level = "INFO"
 
 [date_range]
 start = "2026-01-01"
-end = "2026-05-01"
+end = "2026-09-30"
 step_days = 1
-nights = 1
+nights = 3
 
 [storage]
 sqlite_enabled = true

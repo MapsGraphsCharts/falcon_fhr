@@ -16,7 +16,10 @@ from secure_scraper.destinations.catalog import Destination
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
 
 ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+
+VALID_JOURNAL_MODES = frozenset({"delete", "truncate", "persist", "memory", "wal", "off"})
+VALID_SYNCHRONOUS_MODES = frozenset({"off", "normal", "full", "extra"})
 
 
 def _utc_now() -> str:
@@ -95,9 +98,18 @@ logger = logging.getLogger(__name__)
 class SqliteStore:
     """Thin async wrapper over sqlite3 for structured persistence."""
 
-    def __init__(self, db_path: Path, *, busy_timeout_ms: int = 2000) -> None:
+    def __init__(
+        self,
+        db_path: Path,
+        *,
+        busy_timeout_ms: int = 2000,
+        journal_mode: str | None = "wal",
+        synchronous: str | None = "normal",
+    ) -> None:
         self._path = db_path
         self._busy_timeout_ms = busy_timeout_ms
+        self._journal_mode = self._normalize_journal_mode(journal_mode)
+        self._synchronous = self._normalize_synchronous(synchronous)
         self._connection: sqlite3.Connection | None = None
         self._lock = asyncio.Lock()
 
@@ -124,6 +136,10 @@ class SqliteStore:
         conn = sqlite3.connect(self._path, check_same_thread=False)
         conn.execute("PRAGMA foreign_keys = ON;")
         conn.execute(f"PRAGMA busy_timeout = {int(max(self._busy_timeout_ms, 0))};")
+        if self._journal_mode:
+            conn.execute(f"PRAGMA journal_mode = {self._journal_mode.upper()};")
+        if self._synchronous:
+            conn.execute(f"PRAGMA synchronous = {self._synchronous.upper()};")
         try:
             self._apply_migrations(conn)
         except sqlite3.OperationalError as exc:
@@ -136,6 +152,32 @@ class SqliteStore:
             )
             raise
         return conn
+
+    @staticmethod
+    def _normalize_journal_mode(value: str | None) -> str | None:
+        if value is None:
+            return None
+        mode = value.strip().lower()
+        if not mode:
+            return None
+        if mode not in VALID_JOURNAL_MODES:
+            raise ValueError(
+                f"Unsupported SQLite journal_mode '{value}'. Expected one of: {sorted(VALID_JOURNAL_MODES)}"
+            )
+        return mode
+
+    @staticmethod
+    def _normalize_synchronous(value: str | None) -> str | None:
+        if value is None:
+            return None
+        mode = value.strip().lower()
+        if not mode:
+            return None
+        if mode not in VALID_SYNCHRONOUS_MODES:
+            raise ValueError(
+                f"Unsupported SQLite synchronous mode '{value}'. Expected one of: {sorted(VALID_SYNCHRONOUS_MODES)}"
+            )
+        return mode
 
     def _apply_migrations(self, conn: sqlite3.Connection) -> None:
         conn.execute(
@@ -436,6 +478,7 @@ class SqliteStore:
                             marketing_insider_tip,
                             marketing_video,
                             location_teaser,
+                            renovation_closure_notice,
                             check_in_start,
                             check_in_end,
                             check_out_time,
@@ -444,7 +487,7 @@ class SqliteStore:
                             raw_json,
                             created_at,
                             updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(property_id) DO UPDATE SET
                             supplier_id=excluded.supplier_id,
                             name=excluded.name,
@@ -470,6 +513,7 @@ class SqliteStore:
                             marketing_insider_tip=excluded.marketing_insider_tip,
                             marketing_video=excluded.marketing_video,
                             location_teaser=excluded.location_teaser,
+                            renovation_closure_notice=excluded.renovation_closure_notice,
                             check_in_start=excluded.check_in_start,
                             check_in_end=excluded.check_in_end,
                             check_out_time=excluded.check_out_time,
@@ -504,6 +548,7 @@ class SqliteStore:
                             summary.get("marketing_insider_tip"),
                             summary.get("marketing_video"),
                             summary.get("location_teaser"),
+                            summary.get("renovation_closure_notice"),
                             summary.get("check_in_start"),
                             summary.get("check_in_end"),
                             summary.get("check_out_time"),
@@ -516,16 +561,6 @@ class SqliteStore:
                     )
                     self._upsert_hotel_features(conn, property_id, summary)
                     self._upsert_program_benefits(conn, property_id, summary.get("program_benefits") or [])
-                    if raw:
-                        conn.execute(
-                            """
-                            INSERT INTO hotel_payloads(run_id, property_id, payload_json)
-                            VALUES(?, ?, ?)
-                            ON CONFLICT(run_id, property_id) DO UPDATE SET payload_json=excluded.payload_json
-                            """,
-                            (run_id, property_id, _json_dumps(raw)),
-                        )
-
         async with self._lock:
             await asyncio.to_thread(_op)
 
@@ -1061,13 +1096,6 @@ MIGRATIONS: dict[int, str] = {
             updated_at TEXT NOT NULL
         );
 
-        CREATE TABLE IF NOT EXISTS hotel_payloads (
-            run_id INTEGER NOT NULL REFERENCES search_runs(id) ON DELETE CASCADE,
-            property_id TEXT NOT NULL REFERENCES hotels(property_id) ON DELETE CASCADE,
-            payload_json TEXT NOT NULL,
-            PRIMARY KEY (run_id, property_id)
-        );
-
         CREATE TABLE IF NOT EXISTS hotel_features (
             property_id TEXT NOT NULL REFERENCES hotels(property_id) ON DELETE CASCADE,
             feature_type TEXT NOT NULL,
@@ -1183,5 +1211,9 @@ MIGRATIONS: dict[int, str] = {
             PRIMARY KEY (property_id, promotion_code)
         );
         CREATE INDEX IF NOT EXISTS idx_hotel_promotions_type ON hotel_promotions(promotion_type);
+    """,
+    3: """
+        ALTER TABLE hotels ADD COLUMN renovation_closure_notice TEXT;
+        DROP TABLE IF EXISTS hotel_payloads;
     """,
 }

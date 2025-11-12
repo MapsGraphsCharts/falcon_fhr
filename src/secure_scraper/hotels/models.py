@@ -117,6 +117,7 @@ class HotelRecord:
     policies: List[str] = field(default_factory=list)
     no_show_policy: Optional[str] = None
     supplier_fees: List[str] = field(default_factory=list)
+    renovation_closure_notice: Optional[str] = None
     search: Optional[SearchContext] = None
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -168,6 +169,7 @@ class HotelRecord:
             "policies": list(self.policies),
             "no_show_policy": self.no_show_policy,
             "supplier_fees": list(self.supplier_fees),
+            "renovation_closure_notice": self.renovation_closure_notice,
         }
         return {
             "property_id": self.property_id,

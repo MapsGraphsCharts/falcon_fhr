@@ -56,6 +56,23 @@ def _extract_images(property_images: Optional[Iterable[dict[str, Any]]]) -> tupl
     return hero, gallery
 
 
+def _normalize_notice(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped or None
+    if isinstance(value, Iterable):
+        parts = []
+        for item in value:
+            if not item:
+                continue
+            parts.append(str(item).strip())
+        notice = "\n".join(part for part in parts if part)
+        return notice or None
+    return str(value).strip() or None
+
+
 def _flatten_program_benefits(program_entries: Iterable[dict[str, Any]]) -> List[HotelProgramBenefit]:
     benefits: List[HotelProgramBenefit] = []
     for program in program_entries:
@@ -118,6 +135,7 @@ def build_hotel_record(
     hotel_info: Dict[str, Any] = decoration.get("clientHotelInfo") or {}
     marketing: Dict[str, Any] = hotel_info.get("marketingInfo") or {}
     reviews: Dict[str, Any] = hotel.get("userReviews") or {}
+    renovation_notice = _normalize_notice(hotel.get("renovationAndClosures"))
 
     hero_image, gallery = _extract_images(hotel.get("propertyImages"))
     program_benefits = _flatten_program_benefits(decoration.get("programBenefits", []))
@@ -179,6 +197,7 @@ def build_hotel_record(
         policies=[policy.get("description") for policy in hotel.get("policies", []) if policy.get("description")],
         no_show_policy=hotel.get("noShowPolicy"),
         supplier_fees=[fee.get("text") for fee in hotel.get("supplierFeesDescriptions", []) if fee.get("text")],
+        renovation_closure_notice=renovation_notice,
         search=search_context,
         raw=hotel,
     )

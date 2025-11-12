@@ -9,6 +9,8 @@ from secure_scraper.destinations.catalog import Destination
 from secure_scraper.storage import SqliteStore
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
 
+_SYNCHRONOUS_MAP = {0: "off", 1: "normal", 2: "full", 3: "extra"}
+
 
 @pytest.mark.asyncio
 async def test_sqlite_store_persists_hotels_and_rates(tmp_path) -> None:
@@ -52,6 +54,7 @@ async def test_sqlite_store_persists_hotels_and_rates(tmp_path) -> None:
             "policies": [],
             "supplier_fees": [],
             "program_benefits": [],
+            "renovation_closure_notice": "Pool closed Jan 19-23 for maintenance",
         },
         "search": {
             "destination_key": destination.key,
@@ -153,10 +156,16 @@ async def test_sqlite_store_persists_hotels_and_rates(tmp_path) -> None:
         request_id="req-123",
         context=payload["context"],
     )
+
+    writer_sync_mode = store._require_connection().execute("PRAGMA synchronous").fetchone()[0]
+    assert _SYNCHRONOUS_MAP[int(writer_sync_mode)] == "normal"
+
     await store.close()
 
     conn = sqlite3.connect(db_path)
     try:
+        journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        assert journal_mode.lower() == "wal"
         cur = conn.execute("SELECT status, total_hotels, total_rates, request_id FROM search_runs")
         status, total_hotels, total_rates, request_id = cur.fetchone()
         assert status == "complete"
@@ -167,8 +176,10 @@ async def test_sqlite_store_persists_hotels_and_rates(tmp_path) -> None:
         cur = conn.execute("SELECT COUNT(*) FROM hotels WHERE property_id='hotel-1'")
         assert cur.fetchone()[0] == 1
 
-        cur = conn.execute("SELECT COUNT(*) FROM hotel_payloads WHERE run_id=?", (run_id,))
-        assert cur.fetchone()[0] == 1
+        cur = conn.execute(
+            "SELECT renovation_closure_notice FROM hotels WHERE property_id='hotel-1'"
+        )
+        assert cur.fetchone()[0] == "Pool closed Jan 19-23 for maintenance"
 
         cur = conn.execute("SELECT COUNT(*) FROM rate_snapshots WHERE property_id='hotel-1'")
         assert cur.fetchone()[0] == 1
@@ -188,5 +199,26 @@ async def test_sqlite_store_persists_hotels_and_rates(tmp_path) -> None:
         )
         promo_row = cur.fetchone()
         assert promo_row == ("FHR123", "SPECIAL_OFFER", 3, "2024-01-01", "2024-02-01")
+    finally:
+        conn.close()
+
+
+@pytest.mark.asyncio
+async def test_sqlite_store_custom_pragmas(tmp_path) -> None:
+    db_path = tmp_path / "custom.sqlite"
+    store = SqliteStore(db_path, journal_mode="delete", synchronous="full")
+    await store.initialize()
+
+    writer_sync_mode = store._require_connection().execute("PRAGMA synchronous").fetchone()[0]
+    assert _SYNCHRONOUS_MAP[int(writer_sync_mode)] == "full"
+
+    await store.close()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        synchronous_mode = conn.execute("PRAGMA synchronous").fetchone()[0]
+        assert journal_mode.lower() == "delete"
+        assert _SYNCHRONOUS_MAP[int(synchronous_mode)] == "full"
     finally:
         conn.close()

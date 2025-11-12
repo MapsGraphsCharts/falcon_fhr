@@ -3,6 +3,7 @@
 ## Storage + Workflow overhaul
 - Swapped the JSON download pipeline for structured SQLite persistence (`SqliteStore`) with automatic resume/skip semantics per destination run.
 - Added new `[storage]` run-config knobs (`sqlite_enabled`, `sqlite_path`, `sqlite_busy_timeout_ms`) plus corresponding environment variables to control the database path/timeouts.
+- `SqliteStore` now forces Write-Ahead Logging (`sqlite_journal_mode`, `sqlite_synchronous`) by default so analysis scripts can read while the scraper writes; both PRAGMAs are overridable from `.env`/run configs.
 - Scraper CLI now seeds `search_runs`, `hotels`, `room_types`, `rate_snapshots`, nightly prices, and raw payloads instead of writing `data/downloads/*` bundles. JSON download helpers (`DownloadTask`, `storage/json_writer.py`) were removed.
 - Introduced turnkey run profiles (`config/birthdays.toml`, `config/catalog-snapshot.toml`, updated `config/japan-range.toml`) that target long sweeps while defaulting to SQLite persistence.
 - Added `scripts/analyze_value_windows.py` for quick price-volatility summaries directly against `data/storage/hotels.sqlite3`.

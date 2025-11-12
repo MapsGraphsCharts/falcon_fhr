@@ -309,9 +309,9 @@
       "key": "us-texas",
       "group": "United States",
       "name": "Texas",
-      "location_id": "ZMETRO-EXPEDIA-178293",
-      "latitude": 29.4241,
-      "longitude": -98.4936
+      "location_id": "ZMETRO-EXPEDIA-245",
+      "latitude": 30.271129,
+      "longitude": -97.743699
     },
     {
       "key": "us-utah",
@@ -362,132 +362,20 @@
       "longitude": -107.290283
     },
     {
-      "key": "ca-alberta",
+      "key": "ca-canada",
       "group": "Canada",
-      "name": "Alberta",
-      "location_id": "ZMETRO-EXPEDIA-11111",
-      "latitude": 53.546206,
-      "longitude": -113.491241
+      "name": "Canada",
+      "location_id": "ZMETRO-EXPEDIA-31",
+      "latitude": 56.130366,
+      "longitude": -106.346771
     },
     {
-      "key": "ca-british-columbia",
-      "group": "Canada",
-      "name": "British Columbia",
-      "location_id": "ZMETRO-EXPEDIA-11117",
-      "latitude": 48.428318,
-      "longitude": -123.364953
-    },
-    {
-      "key": "ca-newfoundland-and-labrador",
-      "group": "Canada",
-      "name": "Newfoundland and Labrador",
-      "location_id": "ZMETRO-EXPEDIA-11167",
-      "latitude": 47.561471,
-      "longitude": -52.712616
-    },
-    {
-      "key": "ca-nova-scotia",
-      "group": "Canada",
-      "name": "Nova Scotia",
-      "location_id": "ZMETRO-EXPEDIA-11173",
-      "latitude": 44.648618,
-      "longitude": -63.585949
-    },
-    {
-      "key": "ca-ontario",
-      "group": "Canada",
-      "name": "Ontario",
-      "location_id": "ZMETRO-EXPEDIA-11178",
-      "latitude": 43.653482,
-      "longitude": -79.383935
-    },
-    {
-      "key": "ca-quebec",
-      "group": "Canada",
-      "name": "Qu\u00e9bec",
-      "location_id": "ZMETRO-EXPEDIA-180017",
-      "latitude": 46.8104,
-      "longitude": -71.2139
-    },
-    {
-      "key": "mx-baja-california-sur",
+      "key": "mx-mexico",
       "group": "Mexico",
-      "name": "Baja California Sur",
-      "location_id": "ZMETRO-EXPEDIA-11116",
-      "latitude": 26.044445,
-      "longitude": -111.666069
-    },
-    {
-      "key": "mx-guanajuato",
-      "group": "Mexico",
-      "name": "Guanajuato",
-      "location_id": "ZMETRO-EXPEDIA-6052458",
-      "latitude": 20.917019,
-      "longitude": -101.161735
-    },
-    {
-      "key": "mx-guerrero",
-      "group": "Mexico",
-      "name": "Guerrero",
-      "location_id": "ZMETRO-EXPEDIA-11136",
-      "latitude": 17.439192,
-      "longitude": -99.545097
-    },
-    {
-      "key": "mx-jalisco",
-      "group": "Mexico",
-      "name": "Jalisco",
-      "location_id": "ZMETRO-EXPEDIA-11143",
-      "latitude": 20.659538,
-      "longitude": -103.349434
-    },
-    {
-      "key": "mx-mexico-city",
-      "group": "Mexico",
-      "name": "Mexico City",
-      "location_id": "ZMETRO-EXPEDIA-178285",
-      "latitude": 19.432,
-      "longitude": -99.1344
-    },
-    {
-      "key": "mx-nayarit",
-      "group": "Mexico",
-      "name": "Nayarit",
-      "location_id": "ZMETRO-EXPEDIA-11158",
-      "latitude": 21.751385,
-      "longitude": -104.845459
-    },
-    {
-      "key": "mx-nuevo-leon",
-      "group": "Mexico",
-      "name": "Nuevo Le\u00f3n",
-      "location_id": "ZMETRO-EXPEDIA-11174",
-      "latitude": 25.592173,
-      "longitude": -99.996193
-    },
-    {
-      "key": "mx-puebla",
-      "group": "Mexico",
-      "name": "Puebla",
-      "location_id": "ZMETRO-EXPEDIA-11182",
-      "latitude": 19.04129,
-      "longitude": -98.2062
-    },
-    {
-      "key": "mx-quintana-roo",
-      "group": "Mexico",
-      "name": "Quintana Roo",
-      "location_id": "ZMETRO-EXPEDIA-11186",
-      "latitude": 19.18174,
-      "longitude": -88.479141
-    },
-    {
-      "key": "mx-yucatan",
-      "group": "Mexico",
-      "name": "Yucat\u00e1n",
-      "location_id": "ZMETRO-EXPEDIA-11215",
-      "latitude": 20.709879,
-      "longitude": -89.094337
+      "name": "Mexico",
+      "location_id": "ZMETRO-EXPEDIA-117",
+      "latitude": 23.634501,
+      "longitude": -102.552784
     },
     {
       "key": "ca-belize",

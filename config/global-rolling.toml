@@ -1,0 +1,23 @@
+profile = "global-rolling"
+title = "Global rolling sweep"
+notes = "Rolling 30-day sweep that hits every catalog destination with 3-night FHR/THC stays."
+
+[search]
+check_in = "today"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "today"
+end = "+300d"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

@@ -96,6 +96,14 @@ class Settings(BaseSettings):
         default=2000,
         description="Milliseconds to wait for SQLite locks before failing; keep low to avoid long hangs",
     )
+    sqlite_journal_mode: str = Field(
+        default="wal",
+        description="PRAGMA journal_mode applied to the SQLite database (e.g., 'wal', 'delete')",
+    )
+    sqlite_synchronous: Optional[str] = Field(
+        default="normal",
+        description="PRAGMA synchronous level applied to SQLite; set to None to skip",
+    )
     resume_completed_runs: bool = Field(
         default=True,
         description="Skip destinations whose latest run is already complete in SQLite storage",

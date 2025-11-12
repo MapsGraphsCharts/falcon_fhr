@@ -105,10 +105,14 @@ Rerunning the CLI will now consult the DB before each destination: if the latest
 ### Structured storage (SQLite)
 - Flip `SCRAPER_SQLITE_STORAGE_ENABLED=true` (or set `[storage] sqlite_enabled = true` in your run_config) to persist each destination run into `data/storage/hotels.sqlite3`.
 - The store tracks `search_runs` (status, request IDs, labels), immutable `destinations`, deduplicated `hotels`, `room_types`, and one row per stay-specific `rate_snapshot` along with nightly prices and fee/tax components.
-- Full JSON payloads are kept in `search_payloads` and `hotel_payloads`, so you retain every field even before it is mapped onto columns.
+- Full JSON payloads are kept in the `search_payloads` table (per run) plus the `raw_json` column on `hotels`, so you retain every field even before it is mapped onto columns.
 - Resume support becomes simpler: every run is marked `running`/`complete`/`failed`, so you can spot and rerun destinations that crashed mid-way without losing history.
 - Point BI tools or ad-hoc SQL at the file whenever you want deeper analysis without juggling dozens of JSON dumps.
-- If you're developing with the DB open in another tool, tune `SCRAPER_SQLITE_BUSY_TIMEOUT_MS` (default 2000 ms) so the scraper fails fast instead of hanging behind a DataGrip lock.
+- Writers enable WAL journaling by default (`SCRAPER_SQLITE_JOURNAL_MODE=wal`, `SCRAPER_SQLITE_SYNCHRONOUS=normal`) so read-only tools can tail the DB without blocking the scraper. Override either knob in `.env` or `[storage]` when a stricter mode is required.
+- If you're developing with the DB open in another tool, tune `SCRAPER_SQLITE_BUSY_TIMEOUT_MS` (or `[storage] sqlite_busy_timeout_ms`) so the writer waits a little longer before erroring. WAL plus a larger timeout usually eliminates the repeated “database is locked” failures.
+
+### Known issues
+- Newly added sweep profiles (e.g. `config/caribbean-winter.toml`) still reference the old per-region Canada/Mexico destination keys even though `data/destinations/catalog.json` now consolidates them. Until the catalog is expanded again, override those configs with the new aggregate keys or limit runs to destinations that exist in the catalog.
 
 ### Value analysis helpers
 - Use `scripts/analyze_value_windows.py` to surface large price swings per room type (default query inspects Japan FHR sweeps). Point it at any SQLite capture with `--db data/storage/hotels.sqlite3` and trim the window/destination clauses as needed.

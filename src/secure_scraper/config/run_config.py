@@ -89,6 +89,14 @@ class StorageSection(BaseModel):
     sqlite_busy_timeout_ms: Optional[int] = Field(
         default=None, description="Override SQLite busy timeout (ms) for locks"
     )
+    sqlite_journal_mode: Optional[str] = Field(
+        default=None,
+        description="Override SQLite journal_mode (e.g., 'wal', 'delete')",
+    )
+    sqlite_synchronous: Optional[str] = Field(
+        default=None,
+        description="Override SQLite synchronous PRAGMA (e.g., 'normal', 'full')",
+    )
 
 
 class ManualDestinationSection(BaseModel):
@@ -244,6 +252,10 @@ class RunConfig(BaseModel):
             settings.sqlite_storage_path = _resolve_path(storage.sqlite_path, base_dir)
         if storage.sqlite_busy_timeout_ms is not None:
             settings.sqlite_busy_timeout_ms = storage.sqlite_busy_timeout_ms
+        if storage.sqlite_journal_mode is not None:
+            settings.sqlite_journal_mode = storage.sqlite_journal_mode
+        if storage.sqlite_synchronous is not None:
+            settings.sqlite_synchronous = storage.sqlite_synchronous
 
     def _apply_manual_destination(self, settings: "Settings") -> None:
         manual = self.manual_destination

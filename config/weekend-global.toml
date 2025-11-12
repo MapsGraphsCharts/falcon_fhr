@@ -1,0 +1,23 @@
+profile = "weekend-global"
+title = "Global weekend sweeper"
+notes = "3-night weekend scan across all destination keys for next weekend."
+
+[search]
+check_in = "2025-11-14"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "2025-11-14"
+end = "2025-11-14"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

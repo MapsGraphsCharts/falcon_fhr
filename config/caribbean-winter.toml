@@ -1,0 +1,33 @@
+profile = "caribbean-winter"
+title = "Mexico & Caribbean winter sweep"
+notes = "3-night FHR scans across Mexico and Caribbean keys for peak winter getaways."
+
+[search]
+check_in = "2025-12-15"
+nights = 3
+adults = 2
+destinations = [
+  "mx-jalisco",
+  "mx-nayarit",
+  "mx-quintana-roo",
+  "mx-yucatan",
+  "bc-aruba",
+  "bc-bahamas",
+  "bc-cayman-islands",
+  "bc-dominican-republic",
+  "bc-turks-and-caicos-islands"
+]
+program_filter = ["FHR"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "2025-12-15"
+end = "2026-03-31"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

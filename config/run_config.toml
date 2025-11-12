@@ -28,6 +28,8 @@ log_level = "INFO"
 sqlite_enabled = false
 # sqlite_path = "data/storage/hotels.sqlite3"
 # sqlite_busy_timeout_ms = 2000
+# sqlite_journal_mode = "wal"
+# sqlite_synchronous = "normal"
 
 [manual_destination]
 # Uncomment to override the manual fallback destination without touching .env.

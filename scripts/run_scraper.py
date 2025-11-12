@@ -129,6 +129,8 @@ async def run(settings: Settings, sweeps: list[DateSweep]) -> None:
         db_store = SqliteStore(
             settings.sqlite_storage_path,
             busy_timeout_ms=settings.sqlite_busy_timeout_ms,
+            journal_mode=settings.sqlite_journal_mode,
+            synchronous=settings.sqlite_synchronous,
         )
         await db_store.initialize()
     try:
