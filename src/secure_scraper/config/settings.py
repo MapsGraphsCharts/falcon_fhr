@@ -111,6 +111,16 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
     default_timeout_ms: int = Field(default=15000)
     navigation_timeout_ms: int = Field(default=30000)
+    destination_pause_s: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Seconds to pause between destination searches; set to 0 to disable pacing",
+    )
+    max_consecutive_backend_failures: int = Field(
+        default=5,
+        ge=1,
+        description="Abort the current sweep after this many back-to-back API 5xx responses",
+    )
     destination_catalog_path: Path = Field(
         default=Path("data/destinations/catalog.json"), description="Path to destination catalog metadata"
     )
@@ -122,7 +132,7 @@ class Settings(BaseSettings):
     stealth_user_agent: Optional[str] = None
 
     persistent_context_enabled: bool = Field(
-        default=True,
+        default=False,
         description="Use launch_persistent_context with a Chrome channel and user data dir",
     )
     persistent_user_data_dir: Path = Field(
@@ -140,6 +150,27 @@ class Settings(BaseSettings):
     chromium_args: Tuple[str, ...] = Field(
         default=("--disable-blink-features=AutomationControlled",),
         description="Extra Chromium args passed during launch",
+    )
+
+    hyperbrowser_enabled: bool = Field(
+        default=True,
+        description="Route browser automation through Hyperbrowser cloud sessions",
+    )
+    hyperbrowser_api_key: Optional[str] = Field(
+        default=None,
+        description="Hyperbrowser API key (falls back to HYPERBROWSER_API_KEY env variable)",
+    )
+    hyperbrowser_region: Optional[str] = Field(
+        default=None,
+        description="Preferred Hyperbrowser region identifier (leave unset for auto)",
+    )
+    hyperbrowser_use_stealth: bool = Field(
+        default=True,
+        description="Enable Hyperbrowser's built-in stealth profile for sessions",
+    )
+    hyperbrowser_accept_cookies: bool = Field(
+        default=True,
+        description="Auto-accept cookie banners where supported by Hyperbrowser",
     )
 
     storage_state_path: Optional[Path] = None

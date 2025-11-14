@@ -75,6 +75,7 @@ class BrowserSection(BaseModel):
     viewport_height: Optional[int] = Field(default=None, ge=0)
     device_scale_factor: Optional[float] = Field(default=None, ge=0)
     log_level: Optional[str] = None
+    destination_pause_s: Optional[float] = Field(default=None, ge=0.0)
 
 
 class StorageSection(BaseModel):
@@ -241,6 +242,8 @@ class RunConfig(BaseModel):
             settings.device_scale_factor = browser.device_scale_factor
         if browser.log_level:
             settings.log_level = browser.log_level
+        if browser.destination_pause_s is not None:
+            settings.destination_pause_s = browser.destination_pause_s
 
     def _apply_storage(self, settings: "Settings", base_dir: Optional[Path]) -> None:
         storage = self.storage

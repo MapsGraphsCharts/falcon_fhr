@@ -7,8 +7,9 @@ import json
 import logging
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from playwright.async_api import BrowserContext
+from patchright._impl._errors import Error as PatchrightError, TargetClosedError
 
 from secure_scraper.auth.login_flow import LoginFlow
 from secure_scraper.config.run_config import DateSweep, RunConfig
@@ -27,6 +28,9 @@ from secure_scraper.services.search_client import (
     SessionRefreshError,
 )
 from secure_scraper.storage import SqliteStore
+
+if TYPE_CHECKING:  # pragma: no cover - import for type checking only
+    from secure_scraper.storage.sqlite_store import SearchRunRecord
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
 
 
@@ -164,18 +168,11 @@ async def _run_sweep(
     label_text = label or (settings.search_check_in.isoformat() if settings.search_check_in else "auto")
     logging.info("Starting sweep %s (%s nights)", label_text, settings.search_nights)
 
-    login_flow = LoginFlow(settings)
-    page = await login_flow.run(context)
-    try:
-        await page.close()
-    except Exception:
-        pass
-
     check_in, check_out = _compute_dates(settings)
     destinations = _resolve_destinations(settings)
 
-    client = SearchClient(context)
-
+    warmup_page = settings.search_warmup_enabled
+    destination_runs: list[tuple[Destination, SearchParams]] = []
     for destination in destinations:
         location_id = destination.location_id
         latitude = destination.latitude
@@ -193,8 +190,37 @@ async def _run_sweep(
             rooms=[RoomRequest(adults=settings.search_adults)],
             program_filter=list(settings.search_program_filter) or None,
         )
-        warmup_page = settings.search_warmup_enabled
+        destination_runs.append((destination, params))
 
+    existing_runs: dict[str, "SearchRunRecord"] = {}
+    sweep_already_complete = False
+    if db_store and settings.resume_completed_runs and destination_runs:
+        existing_runs = await db_store.fetch_latest_runs_bulk(destination_runs, label=label)
+        sweep_already_complete = all(
+            (run := existing_runs.get(destination.key)) is not None and run.status == "complete"
+            for destination, _ in destination_runs
+        )
+
+    if sweep_already_complete:
+        logging.info(
+            "Skipping sweep %s; all %s destinations already complete",
+            label_text,
+            len(destination_runs),
+        )
+        return context
+
+    login_flow = LoginFlow(settings)
+    page = await login_flow.run(context)
+    try:
+        await page.close()
+    except Exception:
+        pass
+
+    client = SearchClient(context)
+
+    consecutive_backend_failures = 0
+
+    for destination, params in destination_runs:
         logging.info(
             "Starting search for destination %s (%s, %s)",
             destination.key,
@@ -202,25 +228,24 @@ async def _run_sweep(
             destination.name,
         )
 
-        if db_store and settings.resume_completed_runs:
-            existing_run = await db_store.fetch_latest_run(destination=destination, params=params, label=label)
-            if existing_run:
-                if existing_run.status == "complete":
-                    timestamp = existing_run.completed_at or existing_run.updated_at
-                    logging.info(
-                        "Skipping %s; latest run (id=%s) finished at %s",
-                        destination.key,
-                        existing_run.id,
-                        timestamp,
-                    )
-                    continue
-                if existing_run.status == "failed":
-                    logging.info(
-                        "Re-running %s; previous attempt (id=%s) failed%s",
-                        destination.key,
-                        existing_run.id,
-                        f" ({existing_run.failure_reason})" if existing_run.failure_reason else "",
-                    )
+        existing_run = existing_runs.get(destination.key) if existing_runs else None
+        if existing_run:
+            if existing_run.status == "complete":
+                timestamp = existing_run.completed_at or existing_run.updated_at
+                logging.info(
+                    "Skipping %s; latest run (id=%s) finished at %s",
+                    destination.key,
+                    existing_run.id,
+                    timestamp,
+                )
+                continue
+            if existing_run.status == "failed":
+                logging.info(
+                    "Re-running %s; previous attempt (id=%s) failed%s",
+                    destination.key,
+                    existing_run.id,
+                    f" ({existing_run.failure_reason})" if existing_run.failure_reason else "",
+                )
 
         last_session_error: SessionRefreshError | None = None
         backend_failure: BackendUnavailableError | None = None
@@ -235,6 +260,39 @@ async def _run_sweep(
                     last_session_error = None
                     backend_failure = None
                     break
+                except TargetClosedError as exc:
+                    logging.warning(
+                        "Browser session closed while fetching %s; restarting session",
+                        destination.key,
+                    )
+                    await ensure_close_context(context)
+                    context = await session.new_context()
+                    login_flow = LoginFlow(settings)
+                    page = await login_flow.run(context)
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                    client = SearchClient(context)
+                    continue
+                except PatchrightError as exc:
+                    message = str(exc).lower()
+                    if "context disposed" in message or "browser has been closed" in message or "target page" in message:
+                        logging.warning(
+                            "Request context disposed while fetching %s; rebuilding session",
+                            destination.key,
+                        )
+                        await ensure_close_context(context)
+                        context = await session.new_context()
+                        login_flow = LoginFlow(settings)
+                        page = await login_flow.run(context)
+                        try:
+                            await page.close()
+                        except Exception:
+                            pass
+                        client = SearchClient(context)
+                        continue
+                    raise
                 except SessionRefreshError as exc:
                     last_session_error = exc
                     logging.warning(
@@ -270,7 +328,14 @@ async def _run_sweep(
                 if db_store and run_id is not None:
                     await db_store.mark_run_failed(run_id, reason)
                     run_id = None
+                consecutive_backend_failures += 1
+                if consecutive_backend_failures >= settings.max_consecutive_backend_failures:
+                    raise RuntimeError(
+                        f"Aborting sweep after {consecutive_backend_failures} back-to-back API failures"
+                    ) from backend_failure
                 continue
+            else:
+                consecutive_backend_failures = 0
 
             assert results is not None
             hotels_payload = results.get("hotels", [])
@@ -282,6 +347,11 @@ async def _run_sweep(
             rate_dicts = HotelRateRecord.from_iterable(rate_records)
 
             logging.info("Fetched %s hotels for %s", len(hotels_payload), destination.key)
+
+            pause_s = max(0.0, settings.destination_pause_s)
+            if pause_s:
+                # configurable pause between destinations to mimic human pacing / avoid burst traffic
+                await asyncio.sleep(pause_s)
 
             if db_store and run_id is not None:
                 context_payload = results.get("context") if isinstance(results.get("context"), dict) else None

@@ -222,3 +222,87 @@ async def test_sqlite_store_custom_pragmas(tmp_path) -> None:
         assert _SYNCHRONOUS_MAP[int(synchronous_mode)] == "full"
     finally:
         conn.close()
+
+
+@pytest.mark.asyncio
+async def test_fetch_latest_runs_bulk(tmp_path) -> None:
+    db_path = tmp_path / "bulk.sqlite"
+    store = SqliteStore(db_path)
+    await store.initialize()
+
+    dest_a = Destination(
+        key="dest-a",
+        group="Group",
+        name="City A",
+        location_id="LOC-A",
+        latitude=1.0,
+        longitude=2.0,
+    )
+    dest_b = Destination(
+        key="dest-b",
+        group="Group",
+        name="City B",
+        location_id="LOC-B",
+        latitude=3.0,
+        longitude=4.0,
+    )
+    dest_c = Destination(
+        key="dest-c",
+        group="Group",
+        name="City C",
+        location_id="LOC-C",
+        latitude=5.0,
+        longitude=6.0,
+    )
+
+    params_a = SearchParams(
+        location_id="LOC-A",
+        location_label="City A",
+        latitude=1.0,
+        longitude=2.0,
+        check_in=date(2025, 2, 1),
+        check_out=date(2025, 2, 2),
+        rooms=[RoomRequest(adults=2)],
+        program_filter=["FHR"],
+    )
+    params_b = SearchParams(
+        location_id="LOC-B",
+        location_label="City B",
+        latitude=3.0,
+        longitude=4.0,
+        check_in=date(2025, 2, 1),
+        check_out=date(2025, 2, 2),
+        rooms=[RoomRequest(adults=2)],
+        program_filter=None,
+    )
+    params_c = SearchParams(
+        location_id="LOC-C",
+        location_label="City C",
+        latitude=5.0,
+        longitude=6.0,
+        check_in=date(2025, 2, 1),
+        check_out=date(2025, 2, 2),
+        rooms=[RoomRequest(adults=2)],
+        program_filter=None,
+    )
+
+    run_a = await store.begin_run(destination=dest_a, params=params_a, label="bulk")
+    await store.finalize_run(
+        run_a,
+        total_hotels=1,
+        total_rates=1,
+        request_id="req-a",
+        context={"requestId": "req-a"},
+    )
+
+    run_b = await store.begin_run(destination=dest_b, params=params_b, label="bulk")
+    await store.mark_run_failed(run_b, "boom")
+
+    runs = [(dest_a, params_a), (dest_b, params_b), (dest_c, params_c)]
+    results = await store.fetch_latest_runs_bulk(runs, label="bulk")
+
+    assert set(results.keys()) == {"dest-a", "dest-b"}
+    assert results["dest-a"].status == "complete"
+    assert results["dest-b"].status == "failed"
+
+    await store.close()

@@ -1,0 +1,24 @@
+profile = "global-90d-sample"
+title = "Global 90-day sample sweep"
+notes = "One-off 3-night scan across every catalog destination 90 days from today to capture current FHR + THC coverage."
+
+[search]
+check_in = "+190d"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+hyperbrowser_enabled = true
+
+[date_range]
+start = "+190d"
+end = "+191d"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

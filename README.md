@@ -46,18 +46,25 @@ and browser orchestration cleanly separated while making it easy to toggle steal
    SCRAPER_SEARCH_LATITUDE=41.903755
    SCRAPER_SEARCH_LONGITUDE=12.479556
    SCRAPER_DESTINATION_CATALOG_PATH=data/destinations/catalog.json
+   SCRAPER_HYPERBROWSER_ENABLED=true  # set false to keep using the local Patchright profile
+   SCRAPER_HYPERBROWSER_API_KEY=<your hyperbrowser api key>
    ```
    - If `SCRAPER_MFA_SECRET` is not supplied, the login flow will prompt for the SMS/email code.
    - Provide `SCRAPER_FASTMAIL_API_TOKEN` (plus optional `SCRAPER_FASTMAIL_*` filters) to auto-resolve OTP codes from Fastmail without manual input. By default the scraper looks for mail from `AmericanExpress@welcome.americanexpress.com` with the subject `Your American Express one-time verification code` and a six-digit code in the message body.
+   - Hyperbrowser routing is opt-out: leave `SCRAPER_HYPERBROWSER_ENABLED=true` (default) to run on Hyperbrowser's managed Chromium sessions, or set it to `false` (and skip the API key) to reuse the local Patchright profile.
    - Once a session is established, the storage-state file can be reused to skip fresh logins.
 2. Tune `config/run_config.toml` for day-to-day runs.
    - `search.check_in` accepts ISO dates (`2025-12-01`) or relative offsets such as `+14d`, `+2w`, or `+1m`.
    - List catalog keys or groups under `search.destinations`. Leave the list empty to fall back to the manual destination from `.env`.
    - Use additional profiles by pointing the runner at another file: `python scripts/run_scraper.py --config config/europe.toml`.
+   - `config/global-90d-sample.toml` holds a ready-made 3-night sweep that hits every catalog destination roughly 90 days out—ideal for sanity-checking coverage or generating wide snapshots without editing the default profile.
    - Browser toggles (headless, log level, viewport) can stay in this file so you rarely touch environment variables; headless defaults to `true`, so flip it to `false` (or use `--headed`) when you want to watch a run. Set `search_warmup_enabled = true` only if you want to capture the slow warm-up page; it defaults to `false` for faster runs.
    - A persistent Chrome profile lives in `data/chrome-profile/` by default. Remove that directory to reset cached cookies/devices.
+   - **Hyperbrowser routing (default):** provide `HYPERBROWSER_API_KEY` / `SCRAPER_HYPERBROWSER_API_KEY` when `hyperbrowser_enabled=true` so sessions launch inside Hyperbrowser's cloud browsers. Disable the setting (or pass `--override hyperbrowser_enabled=false`) to keep using the bundled Patchright profile. Optional knobs include `hyperbrowser_region`, `hyperbrowser_use_stealth`, and `hyperbrowser_accept_cookies`. Sessions run roughly $0.10/hour (see [Hyperbrowser pricing](https://www.hyperbrowser.ai/pricing)).
    - We default to the bundled Chromium build. If you install retail Chrome (`patchright install chrome` on supported distros), set `chromium_channel="chrome"` via `.env` or `--override` to opt in.
    - `login_monitor_markers = false` (default) skips the legacy credentials/session network wait so runs resume immediately after OTP. Flip it to `true` only if you need the old debug traces.
+   - `browser.destination_pause_s = 2.5` (or `SCRAPER_DESTINATION_PAUSE_S`) controls the pause between destinations; set it to `0` for maximum throughput or bump it higher if Amex starts rate-limiting.
+   - `max_consecutive_backend_failures = 5` (override via `SCRAPER_MAX_CONSECUTIVE_BACKEND_FAILURES`) stops a sweep when the properties API keeps returning 5xx responses so you don’t burn time hammering an outage.
    - To sweep a range of check-in dates, add a `[date_range]` block. Example:
      ```toml
      [date_range]

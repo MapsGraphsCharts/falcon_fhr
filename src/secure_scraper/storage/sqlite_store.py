@@ -98,6 +98,8 @@ logger = logging.getLogger(__name__)
 class SqliteStore:
     """Thin async wrapper over sqlite3 for structured persistence."""
 
+    _SQLITE_PARAMETER_LIMIT = 900
+
     def __init__(
         self,
         db_path: Path,
@@ -217,6 +219,23 @@ class SqliteStore:
         if not self._connection:
             raise RuntimeError("SQLite store has not been initialised")
         return self._connection
+
+    def _row_to_search_run(self, row: Sequence[Any]) -> SearchRunRecord:
+        return SearchRunRecord(
+            id=int(row[0]),
+            destination_key=row[1],
+            destination_name=row[2],
+            destination_group=row[3],
+            label=row[4],
+            status=row[5],
+            started_at=row[6],
+            updated_at=row[7],
+            completed_at=row[8],
+            failure_reason=row[9],
+            total_hotels=int(row[10] or 0),
+            total_rates=int(row[11] or 0),
+            search_signature=row[12],
+        )
 
     # ------------------------------------------------------------------
     # run orchestration
@@ -369,21 +388,70 @@ class SqliteStore:
             row = cursor.fetchone()
             if not row:
                 return None
-            return SearchRunRecord(
-                id=int(row[0]),
-                destination_key=row[1],
-                destination_name=row[2],
-                destination_group=row[3],
-                label=row[4],
-                status=row[5],
-                started_at=row[6],
-                updated_at=row[7],
-                completed_at=row[8],
-                failure_reason=row[9],
-                total_hotels=int(row[10] or 0),
-                total_rates=int(row[11] or 0),
-                search_signature=row[12],
-            )
+            return self._row_to_search_run(row)
+
+        async with self._lock:
+            return await asyncio.to_thread(_op)
+
+    async def fetch_latest_runs_bulk(
+        self,
+        runs: Sequence[tuple[Destination, SearchParams]],
+        *,
+        label: str | None,
+    ) -> dict[str, SearchRunRecord]:
+        """Fetch the latest run record for multiple destinations in one query."""
+
+        if not runs:
+            return {}
+
+        signatures: list[str] = []
+        signature_to_key: dict[str, str] = {}
+        for destination, params in runs:
+            programs = list(params.program_filter or [])
+            signature = self._signature(destination.key, label, params, programs)
+            signatures.append(signature)
+            signature_to_key.setdefault(signature, destination.key)
+
+        # Deduplicate while preserving order to keep parameter counts low.
+        ordered_unique_signatures = list(dict.fromkeys(signatures))
+
+        def _op() -> dict[str, SearchRunRecord]:
+            conn = self._require_connection()
+            records: dict[str, SearchRunRecord] = {}
+
+            def _query_chunk(chunk: Sequence[str]) -> None:
+                placeholders = ",".join("?" for _ in chunk)
+                cursor = conn.execute(
+                    f"""
+                    SELECT sr.id, sr.destination_key, sr.destination_name, sr.destination_group,
+                           sr.label, sr.status, sr.started_at, sr.updated_at, sr.completed_at,
+                           sr.failure_reason, sr.total_hotels, sr.total_rates, sr.search_signature
+                    FROM search_runs sr
+                    JOIN (
+                        SELECT search_signature, MAX(started_at) AS max_started_at
+                        FROM search_runs
+                        WHERE search_signature IN ({placeholders})
+                        GROUP BY search_signature
+                    ) latest ON sr.search_signature = latest.search_signature
+                            AND sr.started_at = latest.max_started_at
+                    """,
+                    chunk,
+                )
+                for row in cursor.fetchall():
+                    record = self._row_to_search_run(row)
+                    key = signature_to_key.get(record.search_signature)
+                    if key and key not in records:
+                        records[key] = record
+
+            chunk: list[str] = []
+            for signature in ordered_unique_signatures:
+                chunk.append(signature)
+                if len(chunk) >= self._SQLITE_PARAMETER_LIMIT:
+                    _query_chunk(tuple(chunk))
+                    chunk.clear()
+            if chunk:
+                _query_chunk(tuple(chunk))
+            return records
 
         async with self._lock:
             return await asyncio.to_thread(_op)

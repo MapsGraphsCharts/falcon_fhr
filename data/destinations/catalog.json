@@ -309,9 +309,9 @@
       "key": "us-texas",
       "group": "United States",
       "name": "Texas",
-      "location_id": "ZMETRO-EXPEDIA-245",
-      "latitude": 30.271129,
-      "longitude": -97.743699
+      "location_id": "ZMETRO-EXPEDIA-178293",
+      "latitude": 29.4241,
+      "longitude": -98.4936
     },
     {
       "key": "us-utah",
@@ -366,16 +366,88 @@
       "group": "Canada",
       "name": "Canada",
       "location_id": "ZMETRO-EXPEDIA-31",
-      "latitude": 56.130366,
-      "longitude": -106.346771
+      "latitude": 56.1304,
+      "longitude": -106.3468
     },
     {
-      "key": "mx-mexico",
+      "key": "mx-baja-california-sur",
       "group": "Mexico",
-      "name": "Mexico",
-      "location_id": "ZMETRO-EXPEDIA-117",
-      "latitude": 23.634501,
-      "longitude": -102.552784
+      "name": "Baja California Sur",
+      "location_id": "ZMETRO-EXPEDIA-11116",
+      "latitude": 26.044445,
+      "longitude": -111.666069
+    },
+    {
+      "key": "mx-guanajuato",
+      "group": "Mexico",
+      "name": "Guanajuato",
+      "location_id": "ZMETRO-EXPEDIA-6052458",
+      "latitude": 20.917019,
+      "longitude": -101.161735
+    },
+    {
+      "key": "mx-guerrero",
+      "group": "Mexico",
+      "name": "Guerrero",
+      "location_id": "ZMETRO-EXPEDIA-11136",
+      "latitude": 17.439192,
+      "longitude": -99.545097
+    },
+    {
+      "key": "mx-jalisco",
+      "group": "Mexico",
+      "name": "Jalisco",
+      "location_id": "ZMETRO-EXPEDIA-11143",
+      "latitude": 20.659538,
+      "longitude": -103.349434
+    },
+    {
+      "key": "mx-mexico-city",
+      "group": "Mexico",
+      "name": "Mexico City",
+      "location_id": "ZMETRO-EXPEDIA-178285",
+      "latitude": 19.432,
+      "longitude": -99.1344
+    },
+    {
+      "key": "mx-nayarit",
+      "group": "Mexico",
+      "name": "Nayarit",
+      "location_id": "ZMETRO-EXPEDIA-11158",
+      "latitude": 21.751385,
+      "longitude": -104.845459
+    },
+    {
+      "key": "mx-nuevo-leon",
+      "group": "Mexico",
+      "name": "Nuevo Le\u00f3n",
+      "location_id": "ZMETRO-EXPEDIA-11174",
+      "latitude": 25.592173,
+      "longitude": -99.996193
+    },
+    {
+      "key": "mx-puebla",
+      "group": "Mexico",
+      "name": "Puebla",
+      "location_id": "ZMETRO-EXPEDIA-11182",
+      "latitude": 19.04129,
+      "longitude": -98.2062
+    },
+    {
+      "key": "mx-quintana-roo",
+      "group": "Mexico",
+      "name": "Quintana Roo",
+      "location_id": "ZMETRO-EXPEDIA-11186",
+      "latitude": 19.18174,
+      "longitude": -88.479141
+    },
+    {
+      "key": "mx-yucatan",
+      "group": "Mexico",
+      "name": "Yucat\u00e1n",
+      "location_id": "ZMETRO-EXPEDIA-11215",
+      "latitude": 20.709879,
+      "longitude": -89.094337
     },
     {
       "key": "ca-belize",
@@ -589,9 +661,9 @@
       "key": "bc-saint-barthelemy",
       "group": "Bermuda & Caribbean",
       "name": "Saint Barthelemy",
-      "location_id": "ZCITY-EXPEDIA-178690",
-      "latitude": 47.7476,
-      "longitude": 6.58483
+      "location_id": "ZMETRO-EXPEDIA-6069953",
+      "latitude": 17.9000,
+      "longitude": -62.8339
     },
     {
       "key": "bc-saint-kitts-and-nevis",
@@ -605,9 +677,9 @@
       "key": "bc-saint-lucia",
       "group": "Bermuda & Caribbean",
       "name": "Saint Lucia",
-      "location_id": "ZPOI-EXPEDIA-553248621563843877",
-      "latitude": 14.01941,
-      "longitude": -60.998605
+      "location_id": "ZMETRO-EXPEDIA-168",
+      "latitude": 13.9094,
+      "longitude": -60.9789
     },
     {
       "key": "bc-saint-martin",
@@ -621,9 +693,9 @@
       "key": "bc-saint-vincent-and-the-grenadines",
       "group": "Bermuda & Caribbean",
       "name": "Saint Vincent and The Grenadines",
-      "location_id": "ZMETRO-EXPEDIA-11756",
-      "latitude": 13.250974,
-      "longitude": -61.186348
+      "location_id": "ZMETRO-EXPEDIA-169",
+      "latitude": 13.2528,
+      "longitude": -61.1980
     },
     {
       "key": "bc-the-bahamas",
@@ -637,9 +709,9 @@
       "key": "bc-turks-and-caicos-islands",
       "group": "Bermuda & Caribbean",
       "name": "Turks and Caicos Islands",
-      "location_id": "ZMETRO-EXPEDIA-553248635975177541",
-      "latitude": 21.316726,
-      "longitude": -71.21739
+      "location_id": "ZMETRO-EXPEDIA-184",
+      "latitude": 21.6940,
+      "longitude": -71.7979
     },
     {
       "key": "bc-us-virgin-islands",
@@ -701,9 +773,9 @@
       "key": "eu-czech-republic",
       "group": "Europe",
       "name": "Czech Republic",
-      "location_id": "ZPOI-EXPEDIA-553248635998074222",
-      "latitude": 44.809817,
-      "longitude": 20.46674
+      "location_id": "ZMETRO-EXPEDIA-46",
+      "latitude": 49.8175,
+      "longitude": 15.473
     },
     {
       "key": "eu-denmark",
@@ -781,9 +853,9 @@
       "key": "eu-italy",
       "group": "Europe",
       "name": "Italy",
-      "location_id": "ZMETRO-EXPEDIA-179899",
-      "latitude": 41.903755,
-      "longitude": 12.479556
+      "location_id": "ZMETRO-EXPEDIA-86",
+      "latitude": 41.87194,
+      "longitude": 12.56738
     },
     {
       "key": "eu-liechtenstein",
@@ -908,10 +980,10 @@
     {
       "key": "eu-turkey",
       "group": "Europe",
-      "name": "Turkey",
-      "location_id": "ZCITY-EXPEDIA-3000404464",
-      "latitude": 42.680991,
-      "longitude": -80.332169
+      "name": "Türkiye",
+      "location_id": "ZMETRO-EXPEDIA-183",
+      "latitude": 39.920789,
+      "longitude": 32.854048
     },
     {
       "key": "eu-wales",
@@ -968,6 +1040,14 @@
       "location_id": "ZMETRO-EXPEDIA-61",
       "latitude": -17.537383,
       "longitude": -149.565996
+    },
+    {
+      "key": "ap-hong-kong",
+      "group": "Asia Pacific",
+      "name": "Hong Kong SAR",
+      "location_id": "ZMETRO-EXPEDIA-77",
+      "latitude": 22.279328,
+      "longitude": 114.162813
     },
     {
       "key": "ap-guam",
