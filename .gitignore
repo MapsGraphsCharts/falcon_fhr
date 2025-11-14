@@ -15,3 +15,4 @@ tmp_trace.network
 tmp/
 .pytest_cache/
 src/secure_scraper.egg-info/
+analysis/hotel_tiers/*.csv
