@@ -1,0 +1,25 @@
+profile = "global-today"
+title = "Global catalog sweep (today)"
+notes = "Single-day snapshot across every catalog destination for a 3-night stay starting today."
+
+sweep_priority = "destination-first"
+
+[search]
+check_in = "today"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "today"
+end = "today"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

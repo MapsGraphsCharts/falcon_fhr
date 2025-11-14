@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Literal, Optional, Tuple
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -107,6 +107,13 @@ class Settings(BaseSettings):
     resume_completed_runs: bool = Field(
         default=True,
         description="Skip destinations whose latest run is already complete in SQLite storage",
+    )
+    sweep_priority: Literal["date-first", "destination-first"] = Field(
+        default="date-first",
+        description=(
+            "Controls whether sweeps iterate every date before switching destinations or finish "
+            "each destination's date range before moving on"
+        ),
     )
     log_level: str = Field(default="INFO")
     default_timeout_ms: int = Field(default=15000)

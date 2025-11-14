@@ -181,6 +181,10 @@ class RunConfig(BaseModel):
     profile: str = Field(default="default", description="Human label used for logging")
     title: Optional[str] = None
     notes: Optional[str] = None
+    sweep_priority: Optional[str] = Field(
+        default=None,
+        description="Override sweep iteration order ('date-first' or 'destination-first')",
+    )
     search: SearchSection = Field(default_factory=SearchSection)
     browser: BrowserSection = Field(default_factory=BrowserSection)
     manual_destination: Optional[ManualDestinationSection] = None
@@ -204,6 +208,7 @@ class RunConfig(BaseModel):
         self._apply_storage(settings, base_dir)
         self._apply_manual_destination(settings)
         self._apply_paths(settings, base_dir)
+        self._apply_sweep_priority(settings)
 
     # Internal helpers -----------------------------------------------------------
 
@@ -278,6 +283,17 @@ class RunConfig(BaseModel):
             settings.destination_catalog_path = _resolve_path(self.destination_catalog_path, base_dir)
         if self.storage_state_path:
             settings.storage_state_path = _resolve_path(self.storage_state_path, base_dir)
+
+    def _apply_sweep_priority(self, settings: "Settings") -> None:
+        if not self.sweep_priority:
+            return
+        priority = self.sweep_priority.strip().lower()
+        if priority not in {"date-first", "destination-first"}:
+            raise ValueError(
+                "sweep_priority must be either 'date-first' or 'destination-first' "
+                f"(got {self.sweep_priority!r})"
+            )
+        settings.sweep_priority = priority  # type: ignore[assignment]
 
     def date_sweeps(self) -> list[DateSweep]:
         if not self.date_range:

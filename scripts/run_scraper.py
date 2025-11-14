@@ -5,11 +5,14 @@ import argparse
 import asyncio
 import json
 import logging
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from patchright._impl._errors import Error as PatchrightError
+from patchright._impl._errors import TargetClosedError
 from playwright.async_api import BrowserContext
-from patchright._impl._errors import Error as PatchrightError, TargetClosedError
 
 from secure_scraper.auth.login_flow import LoginFlow
 from secure_scraper.config.run_config import DateSweep, RunConfig
@@ -32,12 +35,6 @@ from secure_scraper.storage import SqliteStore
 if TYPE_CHECKING:  # pragma: no cover - import for type checking only
     from secure_scraper.storage.sqlite_store import SearchRunRecord
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
-
-
-def _compute_dates(settings: Settings) -> tuple[date, date]:
-    check_in = settings.search_check_in or (date.today() + timedelta(days=14))
-    check_out = check_in + timedelta(days=settings.search_nights)
-    return check_in, check_out
 
 
 def _resolve_destinations(settings: Settings) -> list[Destination]:
@@ -127,6 +124,123 @@ def _resolve_destinations(settings: Settings) -> list[Destination]:
     return ready
 
 
+@dataclass(frozen=True)
+class _DestinationRun:
+    destination: Destination
+    params: SearchParams
+    label: str | None
+
+
+@dataclass
+class _SweepBatch:
+    sweep: DateSweep
+    runs: list[_DestinationRun]
+    runs_by_destination: dict[str, _DestinationRun]
+
+    @property
+    def label(self) -> str | None:
+        return self.sweep.label
+
+    @property
+    def label_text(self) -> str:
+        return self.sweep.label or self.sweep.check_in.isoformat()
+
+
+def _build_sweep_batches(
+    destinations: list[Destination],
+    sweeps: list[DateSweep],
+    settings: Settings,
+) -> list[_SweepBatch]:
+    batches: list[_SweepBatch] = []
+    program_filter = list(settings.search_program_filter)
+    for sweep in sweeps:
+        check_in = sweep.check_in
+        if check_in is None:  # pragma: no cover - defensive guard
+            raise RuntimeError("Date sweep missing check-in date")
+        nights = sweep.nights if sweep.nights is not None else settings.search_nights
+        check_out = check_in + timedelta(days=nights)
+        runs: list[_DestinationRun] = []
+        indexed: dict[str, _DestinationRun] = {}
+        for destination in destinations:
+            location_id = destination.location_id
+            latitude = destination.latitude
+            longitude = destination.longitude
+            if location_id is None or latitude is None or longitude is None:
+                raise RuntimeError(
+                    f"Destination {destination.key} missing metadata despite readiness check"
+                )
+            params = SearchParams(
+                location_id=location_id,
+                location_label=destination.name,
+                latitude=latitude,
+                longitude=longitude,
+                check_in=check_in,
+                check_out=check_out,
+                rooms=[RoomRequest(adults=settings.search_adults)],
+                program_filter=list(program_filter) if program_filter else None,
+            )
+            run = _DestinationRun(destination=destination, params=params, label=sweep.label)
+            runs.append(run)
+            indexed[destination.key] = run
+        batches.append(_SweepBatch(sweep=sweep, runs=runs, runs_by_destination=indexed))
+    return batches
+
+
+async def _load_existing_runs_map(
+    db_store: SqliteStore,
+    batches: list[_SweepBatch],
+) -> dict[tuple[str, str | None], SearchRunRecord]:
+    mapping: dict[tuple[str, str | None], SearchRunRecord] = {}
+    for batch in batches:
+        if not batch.runs:
+            continue
+        run_pairs = [(run.destination, run.params) for run in batch.runs]
+        records = await db_store.fetch_latest_runs_bulk(run_pairs, label=batch.label)
+        for destination_key, record in records.items():
+            mapping[(destination_key, batch.label)] = record
+    return mapping
+
+
+def _batch_complete(
+    batch: _SweepBatch,
+    existing_runs: dict[tuple[str, str | None], SearchRunRecord],
+) -> bool:
+    if not batch.runs:
+        return True
+    for run in batch.runs:
+        record = existing_runs.get((run.destination.key, run.label))
+        if record is None or record.status != "complete":
+            return False
+    return True
+
+
+def _pending_runs_exist(
+    batches: list[_SweepBatch],
+    existing_runs: dict[tuple[str, str | None], SearchRunRecord],
+) -> bool:
+    if not existing_runs:
+        return True
+    for batch in batches:
+        for run in batch.runs:
+            record = existing_runs.get((run.destination.key, run.label))
+            if record is None or record.status != "complete":
+                return True
+    return False
+
+
+def _build_destination_first_queue(
+    destinations: list[Destination],
+    batches: list[_SweepBatch],
+) -> list[_DestinationRun]:
+    queue: list[_DestinationRun] = []
+    for destination in destinations:
+        for batch in batches:
+            run = batch.runs_by_destination.get(destination.key)
+            if run:
+                queue.append(run)
+    return queue
+
+
 async def run(settings: Settings, sweeps: list[DateSweep]) -> None:
     db_store: SqliteStore | None = None
     if settings.sqlite_storage_enabled:
@@ -139,11 +253,70 @@ async def run(settings: Settings, sweeps: list[DateSweep]) -> None:
         await db_store.initialize()
     try:
         async with BrowserSession(settings) as session:
+            destinations = _resolve_destinations(settings)
+            sweep_batches = _build_sweep_batches(destinations, sweeps, settings)
+            existing_runs: dict[tuple[str, str | None], SearchRunRecord] = {}
+            if db_store and settings.resume_completed_runs:
+                existing_runs = await _load_existing_runs_map(db_store, sweep_batches)
+
             context: BrowserContext | None = None
             try:
                 context = await session.new_context()
-                for sweep in sweeps:
-                    context = await _run_sweep(session, context, settings, sweep, db_store=db_store)
+                if settings.sweep_priority == "destination-first":
+                    pending_exists = True
+                    if db_store and settings.resume_completed_runs:
+                        pending_exists = _pending_runs_exist(sweep_batches, existing_runs)
+                    if not pending_exists:
+                        logging.info(
+                            "Skipping destination-first sweep; "
+                            "all %s destinations already complete for %s sweeps",
+                            len(destinations),
+                            len(sweep_batches),
+                        )
+                    else:
+                        total_runs = sum(len(batch.runs) for batch in sweep_batches)
+                        logging.info(
+                            "Destination-first priority enabled "
+                            "(%s destinations x %s sweeps => %s runs)",
+                            len(destinations),
+                            len(sweep_batches),
+                            total_runs,
+                        )
+                        run_queue = _build_destination_first_queue(destinations, sweep_batches)
+                        context = await _execute_destination_runs(
+                            session,
+                            context,
+                            settings,
+                            run_queue,
+                            db_store=db_store,
+                            existing_runs=existing_runs,
+                        )
+                else:
+                    for batch in sweep_batches:
+                        if not batch.runs:
+                            continue
+                        first_run = batch.runs[0]
+                        nights = (first_run.params.check_out - first_run.params.check_in).days
+                        if (
+                            db_store
+                            and settings.resume_completed_runs
+                            and _batch_complete(batch, existing_runs)
+                        ):
+                            logging.info(
+                                "Skipping sweep %s; all %s destinations already complete",
+                                batch.label_text,
+                                len(batch.runs),
+                            )
+                            continue
+                        logging.info("Starting sweep %s (%s nights)", batch.label_text, nights)
+                        context = await _execute_destination_runs(
+                            session,
+                            context,
+                            settings,
+                            batch.runs,
+                            db_store=db_store,
+                            existing_runs=existing_runs,
+                        )
             finally:
                 if context:
                     await ensure_close_context(context)
@@ -152,63 +325,19 @@ async def run(settings: Settings, sweeps: list[DateSweep]) -> None:
             await db_store.close()
 
 
-async def _run_sweep(
+async def _execute_destination_runs(
     session: BrowserSession,
     context: BrowserContext,
     settings: Settings,
-    sweep: DateSweep,
+    runs: list[_DestinationRun],
     *,
-    db_store: SqliteStore | None = None,
+    db_store: SqliteStore | None,
+    existing_runs: dict[tuple[str, str | None], SearchRunRecord],
 ) -> BrowserContext:
-    if sweep.check_in:
-        settings.search_check_in = sweep.check_in
-    if sweep.nights is not None:
-        settings.search_nights = sweep.nights
-    label = sweep.label
-    label_text = label or (settings.search_check_in.isoformat() if settings.search_check_in else "auto")
-    logging.info("Starting sweep %s (%s nights)", label_text, settings.search_nights)
-
-    check_in, check_out = _compute_dates(settings)
-    destinations = _resolve_destinations(settings)
-
-    warmup_page = settings.search_warmup_enabled
-    destination_runs: list[tuple[Destination, SearchParams]] = []
-    for destination in destinations:
-        location_id = destination.location_id
-        latitude = destination.latitude
-        longitude = destination.longitude
-        if location_id is None or latitude is None or longitude is None:  # pragma: no cover - defensive
-            raise RuntimeError(f"Destination {destination.key} missing metadata despite readiness check")
-
-        params = SearchParams(
-            location_id=location_id,
-            location_label=destination.name,
-            latitude=latitude,
-            longitude=longitude,
-            check_in=check_in,
-            check_out=check_out,
-            rooms=[RoomRequest(adults=settings.search_adults)],
-            program_filter=list(settings.search_program_filter) or None,
-        )
-        destination_runs.append((destination, params))
-
-    existing_runs: dict[str, "SearchRunRecord"] = {}
-    sweep_already_complete = False
-    if db_store and settings.resume_completed_runs and destination_runs:
-        existing_runs = await db_store.fetch_latest_runs_bulk(destination_runs, label=label)
-        sweep_already_complete = all(
-            (run := existing_runs.get(destination.key)) is not None and run.status == "complete"
-            for destination, _ in destination_runs
-        )
-
-    if sweep_already_complete:
-        logging.info(
-            "Skipping sweep %s; all %s destinations already complete",
-            label_text,
-            len(destination_runs),
-        )
+    if not runs:
         return context
 
+    warmup_page = settings.search_warmup_enabled
     login_flow = LoginFlow(settings)
     page = await login_flow.run(context)
     try:
@@ -217,10 +346,17 @@ async def _run_sweep(
         pass
 
     client = SearchClient(context)
-
     consecutive_backend_failures = 0
 
-    for destination, params in destination_runs:
+    for scheduled in runs:
+        destination = scheduled.destination
+        params = scheduled.params
+        label = scheduled.label
+        nights = (params.check_out - params.check_in).days
+
+        settings.search_check_in = params.check_in
+        settings.search_nights = nights
+
         logging.info(
             "Starting search for destination %s (%s, %s)",
             destination.key,
@@ -228,7 +364,7 @@ async def _run_sweep(
             destination.name,
         )
 
-        existing_run = existing_runs.get(destination.key) if existing_runs else None
+        existing_run = existing_runs.get((destination.key, label)) if existing_runs else None
         if existing_run:
             if existing_run.status == "complete":
                 timestamp = existing_run.completed_at or existing_run.updated_at
@@ -255,12 +391,16 @@ async def _run_sweep(
             for rebuild_attempt in range(2):
                 try:
                     if db_store and run_id is None:
-                        run_id = await db_store.begin_run(destination=destination, params=params, label=label)
+                        run_id = await db_store.begin_run(
+                            destination=destination,
+                            params=params,
+                            label=label,
+                        )
                     results = await client.fetch_properties(params, warmup_page=warmup_page)
                     last_session_error = None
                     backend_failure = None
                     break
-                except TargetClosedError as exc:
+                except TargetClosedError:
                     logging.warning(
                         "Browser session closed while fetching %s; restarting session",
                         destination.key,
@@ -277,7 +417,12 @@ async def _run_sweep(
                     continue
                 except PatchrightError as exc:
                     message = str(exc).lower()
-                    if "context disposed" in message or "browser has been closed" in message or "target page" in message:
+                    context_disposed = (
+                        "context disposed" in message
+                        or "browser has been closed" in message
+                        or "target page" in message
+                    )
+                    if context_disposed:
                         logging.warning(
                             "Request context disposed while fetching %s; rebuilding session",
                             destination.key,
@@ -324,14 +469,18 @@ async def _run_sweep(
                 ) from last_session_error
 
             if backend_failure is not None:
-                reason = f"Properties API returned HTTP {backend_failure.status}: {backend_failure.body}"
+                reason = (
+                    f"Properties API returned HTTP {backend_failure.status}: "
+                    f"{backend_failure.body}"
+                )
                 if db_store and run_id is not None:
                     await db_store.mark_run_failed(run_id, reason)
                     run_id = None
                 consecutive_backend_failures += 1
                 if consecutive_backend_failures >= settings.max_consecutive_backend_failures:
                     raise RuntimeError(
-                        f"Aborting sweep after {consecutive_backend_failures} back-to-back API failures"
+                        "Aborting sweep after "
+                        f"{consecutive_backend_failures} back-to-back API failures"
                     ) from backend_failure
                 continue
             else:
@@ -350,11 +499,13 @@ async def _run_sweep(
 
             pause_s = max(0.0, settings.destination_pause_s)
             if pause_s:
-                # configurable pause between destinations to mimic human pacing / avoid burst traffic
+                # configurable pause between destinations to mimic human pacing /
+                # avoid burst traffic
                 await asyncio.sleep(pause_s)
 
             if db_store and run_id is not None:
-                context_payload = results.get("context") if isinstance(results.get("context"), dict) else None
+                context_obj = results.get("context")
+                context_payload = context_obj if isinstance(context_obj, dict) else None
                 request_id = context_payload.get("requestId") if context_payload else None
                 await db_store.store_run_payload(run_id, results)
                 await db_store.save_hotels(run_id, hotel_dicts)
@@ -381,7 +532,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         type=Path,
         default=None,
-        help="Path to a TOML run configuration file (defaults to config/run_config.toml when present)",
+        help=(
+            "Path to a TOML run configuration file "
+            "(defaults to config/run_config.toml when present)"
+        ),
     )
     parser.add_argument(
         "--no-config",
@@ -493,7 +647,9 @@ def main() -> None:
         if run_config.notes:
             logging.getLogger(__name__).info("Profile notes: %s", run_config.notes)
     elif config_path is None:
-        logging.getLogger(__name__).info("Running with environment-based settings (no run_config applied)")
+        logging.getLogger(__name__).info(
+            "Running with environment-based settings (no run_config applied)"
+        )
 
     if args.headed:
         logging.getLogger(__name__).info("CLI override: running in headed mode")

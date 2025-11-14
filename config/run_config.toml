@@ -4,6 +4,8 @@
 profile = "default"
 title = "Two-week lookahead"
 notes = "Edit destinations to choose catalog keys or leave empty to reuse the manual fallback."
+# sweep_priority accepts "date-first" (default) or "destination-first"
+# sweep_priority = "destination-first"
 
 [search]
 # ISO dates (YYYY-MM-DD) or relative offsets like "+14d", "+2w", "+1m".

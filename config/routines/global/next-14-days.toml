@@ -1,0 +1,25 @@
+profile = "global-next-14d"
+title = "Global catalog sweep (next 14 days)"
+notes = "Two-week horizon of 3-night sweeps across the full catalog, destination-by-destination."
+
+sweep_priority = "destination-first"
+
+[search]
+check_in = "today"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "today"
+occurrences = 14
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true
