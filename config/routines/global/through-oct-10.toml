@@ -1,0 +1,25 @@
+profile = "global-through-oct10"
+title = "Global catalog sweep (through Oct 10 checkout)"
+notes = "Destination-first sweep covering every catalog key until stays checking out Oct 10, 2026."
+
+sweep_priority = "destination-first"
+
+[search]
+check_in = "today"
+nights = 3
+adults = 2
+destinations = ["*"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "today"
+end = "+327d"  # rolling horizon so the final checkout is ~330 days out
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true
