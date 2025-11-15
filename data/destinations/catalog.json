@@ -370,84 +370,12 @@
       "longitude": -106.3468
     },
     {
-      "key": "mx-baja-california-sur",
+      "key": "mx-mexico",
       "group": "Mexico",
-      "name": "Baja California Sur",
-      "location_id": "ZMETRO-EXPEDIA-11116",
-      "latitude": 26.044445,
-      "longitude": -111.666069
-    },
-    {
-      "key": "mx-guanajuato",
-      "group": "Mexico",
-      "name": "Guanajuato",
-      "location_id": "ZMETRO-EXPEDIA-6052458",
-      "latitude": 20.917019,
-      "longitude": -101.161735
-    },
-    {
-      "key": "mx-guerrero",
-      "group": "Mexico",
-      "name": "Guerrero",
-      "location_id": "ZMETRO-EXPEDIA-11136",
-      "latitude": 17.439192,
-      "longitude": -99.545097
-    },
-    {
-      "key": "mx-jalisco",
-      "group": "Mexico",
-      "name": "Jalisco",
-      "location_id": "ZMETRO-EXPEDIA-11143",
-      "latitude": 20.659538,
-      "longitude": -103.349434
-    },
-    {
-      "key": "mx-mexico-city",
-      "group": "Mexico",
-      "name": "Mexico City",
-      "location_id": "ZMETRO-EXPEDIA-178285",
-      "latitude": 19.432,
-      "longitude": -99.1344
-    },
-    {
-      "key": "mx-nayarit",
-      "group": "Mexico",
-      "name": "Nayarit",
-      "location_id": "ZMETRO-EXPEDIA-11158",
-      "latitude": 21.751385,
-      "longitude": -104.845459
-    },
-    {
-      "key": "mx-nuevo-leon",
-      "group": "Mexico",
-      "name": "Nuevo Le\u00f3n",
-      "location_id": "ZMETRO-EXPEDIA-11174",
-      "latitude": 25.592173,
-      "longitude": -99.996193
-    },
-    {
-      "key": "mx-puebla",
-      "group": "Mexico",
-      "name": "Puebla",
-      "location_id": "ZMETRO-EXPEDIA-11182",
-      "latitude": 19.04129,
-      "longitude": -98.2062
-    },
-    {
-      "key": "mx-quintana-roo",
-      "group": "Mexico",
-      "name": "Quintana Roo",
-      "location_id": "ZMETRO-EXPEDIA-11186",
-      "latitude": 19.18174,
-      "longitude": -88.479141
-    },
-    {
-      "key": "mx-yucatan",
-      "group": "Mexico",
-      "name": "Yucat\u00e1n",
-      "location_id": "ZMETRO-EXPEDIA-11215",
-      "latitude": 20.709879,
-      "longitude": -89.094337
+      "name": "Mexico",
+      "location_id": "ZMETRO-EXPEDIA-117",
+      "latitude": 23.634501,
+      "longitude": -102.552788
     },
     {
       "key": "ca-belize",
@@ -662,7 +590,7 @@
       "group": "Bermuda & Caribbean",
       "name": "Saint Barthelemy",
       "location_id": "ZMETRO-EXPEDIA-6069953",
-      "latitude": 17.9000,
+      "latitude": 17.9,
       "longitude": -62.8339
     },
     {
@@ -695,7 +623,7 @@
       "name": "Saint Vincent and The Grenadines",
       "location_id": "ZMETRO-EXPEDIA-169",
       "latitude": 13.2528,
-      "longitude": -61.1980
+      "longitude": -61.198
     },
     {
       "key": "bc-the-bahamas",
@@ -710,7 +638,7 @@
       "group": "Bermuda & Caribbean",
       "name": "Turks and Caicos Islands",
       "location_id": "ZMETRO-EXPEDIA-184",
-      "latitude": 21.6940,
+      "latitude": 21.694,
       "longitude": -71.7979
     },
     {

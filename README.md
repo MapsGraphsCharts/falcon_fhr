@@ -122,7 +122,7 @@ Rerunning the CLI will now consult the DB before each destination: if the latest
 - If you're developing with the DB open in another tool, tune `SCRAPER_SQLITE_BUSY_TIMEOUT_MS` (or `[storage] sqlite_busy_timeout_ms`) so the writer waits a little longer before erroring. WAL plus a larger timeout usually eliminates the repeated “database is locked” failures.
 
 ### Known issues
-- Newly added sweep profiles (e.g. `config/caribbean-winter.toml`) still reference the old per-region Canada/Mexico destination keys even though `data/destinations/catalog.json` now consolidates them. Until the catalog is expanded again, override those configs with the new aggregate keys or limit runs to destinations that exist in the catalog.
+- Mexico is now represented by a single catalog entry (`mx-mexico`, `ZMETRO-EXPEDIA-117`) so sweeps only have to fire one request for the entire country. Any custom config that still references the legacy `mx-*` region keys should swap them for the new aggregate key or the scraper will skip that destination.
 
 ### Value analysis helpers
 - Use `scripts/analyze_value_windows.py` to surface large price swings per room type (default query inspects Japan FHR sweeps). Point it at any SQLite capture with `--db data/storage/hotels.sqlite3` and trim the window/destination clauses as needed.
@@ -149,6 +149,7 @@ Rerunning the CLI will now consult the DB before each destination: if the latest
 - Runs are headless by default; set `browser.headless = false`, `SCRAPER_HEADLESS=false`, or pass `--headed` to watch the UI.
 - Use `--override key=value` (repeatable, JSON-friendly) for ad-hoc tweaks: `--override fingerprint_enabled=false --override headless=false`.
 - All environment variables can live in `.env` or be supplied inline on the command line.
+- Repeated 500s from the Amex `hotel/properties` API now trigger a built-in ~2.5 minute pause between retries, so full sweeps survive short Hyperbrowser/backend hiccups. Combine that with `SCRAPER_MAX_CONSECUTIVE_BACKEND_FAILURES` (or the matching `[search]` option) when you need longer or shorter tolerance before a run aborts.
 
 ## Next Steps
 - Expand `SearchParams` to cover additional filters (price ranges, loyalty tiers, amenities).

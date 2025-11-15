@@ -29,6 +29,7 @@ SEARCH_REDIRECT_URL = (
 BOOK_ROOT_URL = "https://www.travel.americanexpress.com/en-us/book/"
 NEXT_AUTH_COOKIE = "__Secure-next-auth.session-token"
 LEGACY_SESSION_COOKIES = {"amexsessioncookie", "aat"}
+BACKEND_RETRY_SLEEP_SECONDS = 150  # ~2.5 minute pause when API returns 500s
 
 
 class UnauthorizedSearchError(RuntimeError):
@@ -67,7 +68,7 @@ class SearchClient:
         extra_headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         logger.info(
-            "Starting property fetch for %s (%s → %s)",
+            "Starting property fetch for %s (%s -> %s)",
             params.location_id,
             params.check_in,
             params.check_out,
@@ -198,6 +199,7 @@ class SearchClient:
                     exc.status,
                     refresh_attempt + 1,
                 )
+                await asyncio.sleep(BACKEND_RETRY_SLEEP_SECONDS)
                 await asyncio.sleep(min(5, refresh_attempt + 1))
                 continue
 
