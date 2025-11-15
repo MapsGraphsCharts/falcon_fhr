@@ -137,6 +137,7 @@ Rerunning the CLI will now consult the DB before each destination: if the latest
   ```
   This prints entries that still need metadata before they can be searched. Populate the missing fields manually or extend the script to harvest them automatically from captured traffic.
 - Per-destination results now live exclusively in SQLite; inspect them via SQL or ad-hoc tooling instead of chasing JSON files.
+- When SQLite data is available, the scraper automatically orders destinations by the most recently captured property counts (with all `mx-*` keys rolled into `mx-mexico`). That way long sweeps prioritize high-density catalogs first before moving down to smaller destinations.
 
 ### Filtering & automation tips
 - Provide the JSON list `SCRAPER_SEARCH_PROGRAM_FILTER` to restrict results to Fine Hotels + Resorts® or The Hotel Collection, for example:

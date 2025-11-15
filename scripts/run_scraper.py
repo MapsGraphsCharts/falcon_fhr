@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import json
 import logging
+import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -121,7 +122,73 @@ def _resolve_destinations(settings: Settings) -> list[Destination]:
             f"No destinations are ready for search for requested keys/groups: {requested}"
         )
 
+    property_counts = _load_destination_property_counts(settings)
+    if property_counts:
+        original_index = {destination.key: idx for idx, destination in enumerate(ready)}
+        ready.sort(
+            key=lambda dest: (
+                0 if property_counts.get(dest.key) is not None else 1,
+                -property_counts.get(dest.key, 0),
+                original_index[dest.key],
+            )
+        )
+        top_key = ready[0].key if ready else None
+        if top_key and top_key in property_counts:
+            logging.info(
+                "Ordering %s destinations by hotel counts (leader: %s with %s properties)",
+                len(ready),
+                top_key,
+                property_counts[top_key],
+            )
     return ready
+
+
+def _load_destination_property_counts(settings: Settings) -> dict[str, int]:
+    path = settings.sqlite_storage_path
+    if not path:
+        return {}
+    try:
+        uri = f"file:{path}?mode=ro&immutable=1"
+        connection = sqlite3.connect(uri, uri=True)
+    except sqlite3.Error as exc:
+        logging.debug("Unable to open SQLite file %s for destination ordering: %s", path, exc)
+        return {}
+    try:
+        cursor = connection.cursor()
+        query = """
+            WITH ranked_runs AS (
+                SELECT
+                    id,
+                    destination_key,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY destination_key
+                        ORDER BY datetime(started_at) DESC
+                    ) AS rn
+                FROM search_runs
+                WHERE status = 'complete'
+            ),
+            latest_runs AS (
+                SELECT id, destination_key FROM ranked_runs WHERE rn = 1
+            )
+            SELECT
+                CASE
+                    WHEN destination_key LIKE 'mx-%' THEN 'mx-mexico'
+                    ELSE destination_key
+                END AS rolled_key,
+                COUNT(DISTINCT rate_snapshots.property_id) AS property_count
+            FROM latest_runs
+            JOIN rate_snapshots ON rate_snapshots.run_id = latest_runs.id
+            GROUP BY rolled_key
+        """
+        property_counts: dict[str, int] = {}
+        for key, count in cursor.execute(query):
+            property_counts[str(key)] = int(count or 0)
+        return property_counts
+    except sqlite3.Error as exc:
+        logging.debug("Failed to load destination property counts from %s: %s", path, exc)
+        return {}
+    finally:
+        connection.close()
 
 
 @dataclass(frozen=True)
