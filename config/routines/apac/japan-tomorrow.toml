@@ -1,0 +1,25 @@
+profile = "apac-japan-tomorrow"
+title = "Japan catalog sweep (tomorrow)"
+notes = "Single-day Japan snapshot (3-night stay) starting tomorrow."
+
+sweep_priority = "destination-first"
+
+[search]
+check_in = "+1d"
+nights = 3
+adults = 2
+destinations = ["ap-japan"]
+program_filter = ["FHR", "THC"]
+
+[browser]
+headless = true
+log_level = "INFO"
+
+[date_range]
+start = "+1d"
+end = "+1d"
+step_days = 1
+nights = 3
+
+[storage]
+sqlite_enabled = true

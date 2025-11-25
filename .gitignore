@@ -15,4 +15,14 @@ tmp_trace.network
 tmp/
 .pytest_cache/
 src/secure_scraper.egg-info/
+
+# Analysis artifacts
 analysis/hotel_tiers/*.csv
+analysis/*.ipynb
+*.ipynb_checkpoints/
+
+# SQLite artifacts (IDE-generated)
+identifier.sqlite
+
+# Generated outputs
+*.csv

@@ -16,7 +16,7 @@ from secure_scraper.destinations.catalog import Destination
 from secure_scraper.tasks.search_payloads import RoomRequest, SearchParams
 
 ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 
 VALID_JOURNAL_MODES = frozenset({"delete", "truncate", "persist", "memory", "wal", "off"})
 VALID_SYNCHRONOUS_MODES = frozenset({"off", "normal", "full", "extra"})
@@ -479,20 +479,13 @@ class SqliteStore:
     async def store_run_payload(self, run_id: int, payload: dict[str, Any]) -> None:
         def _op() -> None:
             conn = self._require_connection()
-            blob = _json_dumps(payload)
+            if not payload:
+                return
             context = payload.get("context") if isinstance(payload.get("context"), dict) else None
             request_id = context.get("requestId") if context else None
             context_blob = _json_dumps(context) if context else None
             now = _utc_now()
             with conn:
-                conn.execute(
-                    """
-                    INSERT INTO search_payloads(run_id, payload_json)
-                    VALUES(?, ?)
-                    ON CONFLICT(run_id) DO UPDATE SET payload_json=excluded.payload_json
-                    """,
-                    (run_id, blob),
-                )
                 conn.execute(
                     """
                     UPDATE search_runs SET request_id=?, raw_context=?, updated_at=? WHERE id=?
@@ -767,7 +760,6 @@ class SqliteStore:
                     _maybe_json(record.get("supplier_rate_promotion")),
                     _maybe_json(record.get("comparison_amenity")),
                     _json_dumps(search_ctx),
-                    _maybe_json(record.get("raw")),
                     now,
                 )
 
@@ -877,7 +869,6 @@ class SqliteStore:
                             supplier_rate_promotion_json,
                             comparison_amenity_json,
                             search_context_json,
-                            raw_json,
                             created_at
                         ) VALUES (PLACEHOLDERS)
                         """.replace("PLACEHOLDERS", placeholder_clause),
@@ -1229,7 +1220,6 @@ MIGRATIONS: dict[int, str] = {
             supplier_rate_promotion_json TEXT,
             comparison_amenity_json TEXT,
             search_context_json TEXT NOT NULL,
-            raw_json TEXT NOT NULL,
             created_at TEXT NOT NULL,
             UNIQUE(run_id, property_id, room_type_id, rate_id)
         );
@@ -1283,5 +1273,11 @@ MIGRATIONS: dict[int, str] = {
     3: """
         ALTER TABLE hotels ADD COLUMN renovation_closure_notice TEXT;
         DROP TABLE IF EXISTS hotel_payloads;
+    """,
+    4: """
+        DROP TABLE IF EXISTS search_payloads;
+    """,
+    5: """
+        ALTER TABLE rate_snapshots DROP COLUMN raw_json;
     """,
 }

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Optional
 
 from patchright._impl._errors import Error as PatchrightError
 from patchright._impl._errors import TargetClosedError
+from playwright._impl._errors import Error as PlaywrightError
 from playwright.async_api import BrowserContext
 
 from secure_scraper.auth.login_flow import LoginFlow
@@ -135,7 +136,7 @@ def _resolve_destinations(settings: Settings) -> list[Destination]:
         top_key = ready[0].key if ready else None
         if top_key and top_key in property_counts:
             logging.info(
-                "Ordering %s destinations by hotel counts (leader: %s with %s properties)",
+                "Ordering %s destinations by historical hotel counts (leader: %s with %s properties)",
                 len(ready),
                 top_key,
                 property_counts[top_key],
@@ -156,28 +157,19 @@ def _load_destination_property_counts(settings: Settings) -> dict[str, int]:
     try:
         cursor = connection.cursor()
         query = """
-            WITH ranked_runs AS (
+            WITH destination_properties AS (
                 SELECT
-                    id,
-                    destination_key,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY destination_key
-                        ORDER BY datetime(started_at) DESC
-                    ) AS rn
+                    CASE
+                        WHEN search_runs.destination_key LIKE 'mx-%' THEN 'mx-mexico'
+                        ELSE search_runs.destination_key
+                    END AS rolled_key,
+                    rate_snapshots.property_id
                 FROM search_runs
-                WHERE status = 'complete'
-            ),
-            latest_runs AS (
-                SELECT id, destination_key FROM ranked_runs WHERE rn = 1
+                JOIN rate_snapshots ON rate_snapshots.run_id = search_runs.id
+                WHERE search_runs.status = 'complete'
             )
-            SELECT
-                CASE
-                    WHEN destination_key LIKE 'mx-%' THEN 'mx-mexico'
-                    ELSE destination_key
-                END AS rolled_key,
-                COUNT(DISTINCT rate_snapshots.property_id) AS property_count
-            FROM latest_runs
-            JOIN rate_snapshots ON rate_snapshots.run_id = latest_runs.id
+            SELECT rolled_key, COUNT(DISTINCT property_id) AS property_count
+            FROM destination_properties
             GROUP BY rolled_key
         """
         property_counts: dict[str, int] = {}
@@ -482,7 +474,22 @@ async def _execute_destination_runs(
                         pass
                     client = SearchClient(context)
                     continue
-                except PatchrightError as exc:
+                except asyncio.CancelledError:
+                    logging.warning(
+                        "Request context cancelled while fetching %s; rebuilding session",
+                        destination.key,
+                    )
+                    await ensure_close_context(context)
+                    context = await session.new_context()
+                    login_flow = LoginFlow(settings)
+                    page = await login_flow.run(context)
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
+                    client = SearchClient(context)
+                    continue
+                except (PatchrightError, PlaywrightError) as exc:
                     message = str(exc).lower()
                     context_disposed = (
                         "context disposed" in message

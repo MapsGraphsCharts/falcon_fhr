@@ -7,15 +7,15 @@ check_in = "2026-01-01"
 nights = 3
 adults = 2
 destinations = ["ap-japan"]
-program_filter = ["FHR"]
+program_filter = ["FHR", "THC"]
 
 [browser]
 headless = true
 log_level = "INFO"
 
 [date_range]
-start = "2026-01-01"
-end = "2026-09-30"
+start = "2026-01-15"
+end = "2026-02-08"
 step_days = 1
 nights = 3
 
